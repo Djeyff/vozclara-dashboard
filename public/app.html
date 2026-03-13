@@ -33,10 +33,13 @@
   .gold-text { background: linear-gradient(135deg, #F59E0B, #FBBF24); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
   ::-webkit-scrollbar { width: 4px; } ::-webkit-scrollbar-track { background: transparent; } ::-webkit-scrollbar-thumb { background: rgba(245,158,11,0.3); border-radius: 4px; }
 
-  /* Bullet-point transcription */
+  /* Bullet-point summary */
   .txn-bullets { list-style: none; padding: 0; margin: 0; }
   .txn-bullets li { display: flex; gap: 8px; padding: 3px 0; line-height: 1.55; }
   .txn-bullets li::before { content: '•'; color: #F59E0B; font-weight: bold; flex-shrink: 0; margin-top: 0; }
+  /* Paragraph transcription (no dot) */
+  .txn-bullets li.para { display: block; padding: 0 0 10px 0; }
+  .txn-bullets li.para::before { content: none; }
 
   /* Mobile sidebar overlay */
   #sidebar-overlay { display: none; }
@@ -275,17 +278,41 @@ function closeSidebar() {
 }
 
 // ── Format transcription as bullet points ─────────────────────────────────────
-function formatBullets(text, max = 3) {
+// Parse summary/AI text — converts * or - markers into clean bullet strings (1-3 max)
+function parseSummaryBullets(text, max = 3) {
+  if (!text) return [];
+  const raw = text.trim();
+  const hasBullets = /(?:^|\n)\s*[•\-\*]\s/m.test(raw);
+  let items;
+  if (hasBullets) {
+    items = raw.split(/\n/).map(l => l.replace(/^\s*[•\-\*]\s*/, '').trim()).filter(l => l.length > 3);
+  } else {
+    items = (raw.match(/[^.!?]+[.!?]+/g) || [raw]).map(s => s.trim()).filter(s => s.length > 3);
+  }
+  const len = raw.length;
+  const count = len < 60 ? 1 : len < 200 ? Math.min(2, items.length) : Math.min(max, items.length);
+  return items.slice(0, count);
+}
+
+// Format transcription as natural paragraphs (NOT bullet-per-sentence)
+function formatTranscriptParagraphs(text) {
   if (!text) return [];
   const raw = text.trim().replace(/\s+/g, ' ');
-  // If text already has bullet markers (•, -, *), extract them
-  const prebuilt = raw.split('\n').map(l => l.replace(/^[•\-\*]\s*/, '').trim()).filter(l => l.length > 3);
-  const hasBullets = /^[•\-\*]\s/m.test(raw);
-  const items = hasBullets ? prebuilt : (raw.match(/[^.!?]+[.!?]+/g) || [raw]).map(s => s.trim()).filter(s => s.length > 3);
-  // Adaptive count: short text → fewer bullets
-  const len = raw.length;
-  const count = len < 60 ? 1 : len < 180 ? Math.min(2, items.length) : Math.min(max, items.length);
-  return items.slice(0, count);
+  const sentences = (raw.match(/[^.!?]+[.!?]+/g) || [raw]).map(s => s.trim()).filter(s => s.length > 3);
+  if (sentences.length <= 2) return [raw];
+  const paras = [];
+  let cur = [], curLen = 0;
+  for (const s of sentences) {
+    cur.push(s); curLen += s.length;
+    if (curLen >= 180 && cur.length >= 2) { paras.push(cur.join(' ')); cur = []; curLen = 0; }
+  }
+  if (cur.length) paras.push(cur.join(' '));
+  return paras;
+}
+
+// Card preview bullets (from summary, adaptive 1-3)
+function formatBullets(text, max = 3) {
+  return parseSummaryBullets(text, max);
 }
 
 // ── Transcriptions ────────────────────────────────────────────────────────────
@@ -372,24 +399,24 @@ function openPDF(row) {
   badge.textContent = srcLabel;
   document.getElementById('modal-meta').textContent = date + ' ' + time + dur;
 
-  // Summary bullets (top, like original VozClara bot)
+  // Summary: parse * markers → • bullets
   const summaryBlock = document.getElementById('pdf-summary-block');
   const summaryEl = document.getElementById('pdf-summary');
   if (row.summary) {
-    const sBullets = formatBullets(row.summary, 5);
+    const sBullets = parseSummaryBullets(row.summary, 5);
     summaryEl.innerHTML = '<ul class="txn-bullets">' + sBullets.map(s => '<li><span>' + escHtml(s) + '</span></li>').join('') + '</ul>';
     summaryBlock.classList.remove('hidden');
   } else {
     summaryBlock.classList.add('hidden');
   }
 
-  // Full transcription as bullets
-  const bullets = formatBullets(row.transcription, 20);
+  // Transcription: natural paragraphs (NOT bullet-per-sentence)
+  const paras = formatTranscriptParagraphs(row.transcription);
   const ul = document.getElementById('pdf-bullets');
-  if (bullets.length > 0) {
-    ul.innerHTML = bullets.map(s => '<li><span>' + escHtml(s) + '</span></li>').join('');
+  if (paras.length > 0) {
+    ul.innerHTML = paras.map(p => '<li class="para"><span>' + escHtml(p) + '</span></li>').join('');
   } else {
-    ul.innerHTML = '<li><span class="text-gray-500">(sin transcripción)</span></li>';
+    ul.innerHTML = '<li class="para"><span class="text-gray-500">(sin transcripción)</span></li>';
   }
 
   document.getElementById('pdf-modal').classList.remove('hidden');
