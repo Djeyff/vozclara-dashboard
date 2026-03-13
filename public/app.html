@@ -211,13 +211,21 @@
     <div class="flex-1 overflow-y-auto px-4 sm:px-5 py-4">
       <!-- Transcription as bullet points -->
       <div class="mb-4">
-        <div class="text-xs text-amber-400 font-semibold mb-3 uppercase tracking-wide">Transcripción</div>
-        <ul id="pdf-bullets" class="txn-bullets text-sm text-gray-200"></ul>
+      <!-- Summary bullets first — like original VozClara bot -->
+      <div id="pdf-summary-block" class="hidden mb-4">
+        <div class="flex items-center gap-1.5 mb-2">
+          <span class="text-base">💡</span>
+          <span class="text-xs text-amber-400 font-semibold uppercase tracking-wide">Summary</span>
+        </div>
+        <div id="pdf-summary" class="text-sm text-gray-300"></div>
       </div>
-      <!-- Summary -->
-      <div id="pdf-summary-block" class="hidden border-t border-white/8 pt-3 mt-2">
-        <div class="text-xs text-gray-500 font-semibold mb-1 uppercase tracking-wide">Resumen</div>
-        <p id="pdf-summary" class="text-xs text-gray-400 leading-relaxed"></p>
+      <!-- Full transcription -->
+      <div class="border-t border-white/8 pt-3">
+        <div class="flex items-center gap-1.5 mb-2">
+          <span class="text-base">📝</span>
+          <span class="text-xs text-gray-500 font-semibold uppercase tracking-wide">Transcripción</span>
+        </div>
+        <ul id="pdf-bullets" class="txn-bullets text-sm text-gray-200"></ul>
       </div>
     </div>
     <!-- Actions — fixed footer -->
@@ -267,12 +275,17 @@ function closeSidebar() {
 }
 
 // ── Format transcription as bullet points ─────────────────────────────────────
-function formatBullets(text) {
+function formatBullets(text, max = 3) {
   if (!text) return [];
-  // Split by sentence endings, keeping punctuation
   const raw = text.trim().replace(/\s+/g, ' ');
-  const sentences = raw.match(/[^.!?]+[.!?]+/g) || [raw];
-  return sentences.map(s => s.trim()).filter(s => s.length > 2);
+  // If text already has bullet markers (•, -, *), extract them
+  const prebuilt = raw.split('\n').map(l => l.replace(/^[•\-\*]\s*/, '').trim()).filter(l => l.length > 3);
+  const hasBullets = /^[•\-\*]\s/m.test(raw);
+  const items = hasBullets ? prebuilt : (raw.match(/[^.!?]+[.!?]+/g) || [raw]).map(s => s.trim()).filter(s => s.length > 3);
+  // Adaptive count: short text → fewer bullets
+  const len = raw.length;
+  const count = len < 60 ? 1 : len < 180 ? Math.min(2, items.length) : Math.min(max, items.length);
+  return items.slice(0, count);
 }
 
 // ── Transcriptions ────────────────────────────────────────────────────────────
@@ -334,9 +347,8 @@ function renderTranscriptions() {
         <span class="text-xs text-gray-600 flex-shrink-0">${date} ${time}</span>
       </div>
       <ul class="txn-bullets text-sm text-gray-300 mt-1">
-        ${formatBullets((r.transcription||'')).slice(0,3).map(s => '<li><span>' + escHtml(s.slice(0,120)) + (s.length>120?'...':'') + '</span></li>').join('')}
+        ${formatBullets(r.summary || r.transcription || '').map(s => '<li><span>' + escHtml(s.slice(0,130)) + (s.length>130?'...':'') + '</span></li>').join('')}
       </ul>
-      ${r.summary ? '<p class="text-xs text-gray-500 mt-2 line-clamp-1 border-t border-white/5 pt-2">📝 ' + escHtml(r.summary.replace(/^\*\s*/gm,'').slice(0,90)) + '...</p>' : ''}
     </div>`;
   }).join('');
   list.classList.remove('hidden');
@@ -360,23 +372,24 @@ function openPDF(row) {
   badge.textContent = srcLabel;
   document.getElementById('modal-meta').textContent = date + ' ' + time + dur;
 
-  // Bullet points
-  const bullets = formatBullets(row.transcription);
+  // Summary bullets (top, like original VozClara bot)
+  const summaryBlock = document.getElementById('pdf-summary-block');
+  const summaryEl = document.getElementById('pdf-summary');
+  if (row.summary) {
+    const sBullets = formatBullets(row.summary, 5);
+    summaryEl.innerHTML = '<ul class="txn-bullets">' + sBullets.map(s => '<li><span>' + escHtml(s) + '</span></li>').join('') + '</ul>';
+    summaryBlock.classList.remove('hidden');
+  } else {
+    summaryBlock.classList.add('hidden');
+  }
+
+  // Full transcription as bullets
+  const bullets = formatBullets(row.transcription, 20);
   const ul = document.getElementById('pdf-bullets');
   if (bullets.length > 0) {
     ul.innerHTML = bullets.map(s => '<li><span>' + escHtml(s) + '</span></li>').join('');
   } else {
     ul.innerHTML = '<li><span class="text-gray-500">(sin transcripción)</span></li>';
-  }
-
-  // Summary
-  const summaryBlock = document.getElementById('pdf-summary-block');
-  const summaryEl = document.getElementById('pdf-summary');
-  if (row.summary) {
-    summaryEl.textContent = row.summary.replace(/^\*\s*/gm, '');
-    summaryBlock.classList.remove('hidden');
-  } else {
-    summaryBlock.classList.add('hidden');
   }
 
   document.getElementById('pdf-modal').classList.remove('hidden');
