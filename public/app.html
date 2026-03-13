@@ -196,6 +196,15 @@
               Ver planes →
             </a>
           </div>
+          <!-- Timezone setting -->
+          <div class="card rounded-2xl p-4 sm:p-5">
+            <div class="text-sm font-semibold text-white mb-1">⏰ Zona horaria</div>
+            <div class="text-xs text-gray-400 mb-3">Las horas de tus notas se mostrarán en esta zona.</div>
+            <select id="tz-select" onchange="applyTimezone(this.value)"
+              class="input-field w-full rounded-xl px-3 py-2 text-sm">
+            </select>
+            <div id="tz-current" class="text-xs text-amber-400 mt-2"></div>
+          </div>
         </div>
       </div>
 
@@ -267,6 +276,31 @@ let offset = 0;
 const LIMIT = 30;
 let currentPdfRow = null;
 let user = null;
+
+// ── Timezone helpers ──────────────────────────────────────────────────────────
+let userTZ = localStorage.getItem('vc_timezone') || Intl.DateTimeFormat().resolvedOptions().timeZone || 'UTC';
+
+// Normalize ISO string: ensure it ends with Z (Supabase sometimes omits it)
+function parseDate(str) {
+  if (!str) return new Date();
+  // Already has timezone info
+  if (str.endsWith('Z') || str.includes('+') && str.lastIndexOf('+') > 10) return new Date(str);
+  // Add Z to treat as UTC
+  return new Date(str + 'Z');
+}
+
+function fmtDate(str) {
+  const d = parseDate(str);
+  return d.toLocaleDateString(navigator.language || 'es', { day:'2-digit', month:'short', timeZone: userTZ });
+}
+function fmtTime(str) {
+  const d = parseDate(str);
+  return d.toLocaleTimeString(navigator.language || 'es', { hour:'2-digit', minute:'2-digit', timeZone: userTZ });
+}
+function fmtDateLong(str) {
+  const d = parseDate(str);
+  return d.toLocaleDateString(navigator.language || 'es', { day:'2-digit', month:'short', year:'numeric', timeZone: userTZ });
+}
 
 // ── Init ──────────────────────────────────────────────────────────────────────
 async function init() {
@@ -381,8 +415,8 @@ function renderTranscriptions() {
     const source = getSource(r);
     const srcClass = 'source-' + source;
     const srcLabel = source === 'telegram' ? '✈️ Telegram' : source === 'whatsapp' ? '💬 WhatsApp' : '🌐 Chrome';
-    const date = new Date(r.created_at).toLocaleDateString('es', { day:'2-digit', month:'short' });
-    const time = new Date(r.created_at).toLocaleTimeString('es', { hour:'2-digit', minute:'2-digit' });
+    const date = fmtDate(r.created_at);
+    const time = fmtTime(r.created_at);
     const dur = r.audio_duration_minutes ? (r.audio_duration_minutes * 60).toFixed(0) + 's' : '';
     const preview = (r.transcription || '').slice(0, 140);
     const rowJson = JSON.stringify(r).replace(/"/g, '&quot;');
@@ -425,8 +459,8 @@ function openPDF(row) {
   const source = getSource(row);
   const srcClass = 'source-' + source;
   const srcLabel = source === 'telegram' ? '✈️ Telegram' : source === 'whatsapp' ? '💬 WhatsApp' : '🌐 Chrome';
-  const date = new Date(row.created_at).toLocaleDateString('es', { day:'2-digit', month:'short', year:'numeric' });
-  const time = new Date(row.created_at).toLocaleTimeString('es', { hour:'2-digit', minute:'2-digit' });
+  const date = fmtDateLong(row.created_at);
+  const time = fmtTime(row.created_at);
   const dur = row.audio_duration_minutes ? ' · 🎙️ ' + (row.audio_duration_minutes * 60).toFixed(0) + 's' : '';
 
   // Source badge
@@ -514,7 +548,7 @@ async function doSearch() {
     document.getElementById('search-answer').classList.remove('hidden');
     document.getElementById('sources-list').innerHTML = data.sources.map((s, i) =>
       '<div class="card rounded-lg p-3 text-xs text-gray-400 mb-2"><span class="text-amber-400 font-semibold">[' + (i+1) + ']</span> ' +
-      new Date(s.created_at).toLocaleDateString('es') + ' — ' + (s.text||'').slice(0,120) + '...</div>'
+      fmtDate(s.created_at) + ' ' + fmtTime(s.created_at) + ' — ' + (s.text||'').slice(0,120) + '...</div>'
     ).join('');
     document.getElementById('search-sources').classList.remove('hidden');
   } else {
@@ -547,6 +581,58 @@ function loadUsage() {
   }
 }
 
+// ── Timezone ──────────────────────────────────────────────────────────────────
+const TZ_LIST = [
+  ['UTC', 'UTC (Universal)'],
+  ['America/Santo_Domingo', 'Santo Domingo (UTC-4)'],
+  ['America/New_York', 'New York (UTC-5/4)'],
+  ['America/Chicago', 'Chicago (UTC-6/5)'],
+  ['America/Denver', 'Denver (UTC-7/6)'],
+  ['America/Los_Angeles', 'Los Angeles (UTC-8/7)'],
+  ['America/Mexico_City', 'Ciudad de México (UTC-6/5)'],
+  ['America/Bogota', 'Bogotá (UTC-5)'],
+  ['America/Lima', 'Lima (UTC-5)'],
+  ['America/Santiago', 'Santiago (UTC-4/3)'],
+  ['America/Sao_Paulo', 'São Paulo (UTC-3)'],
+  ['America/Buenos_Aires', 'Buenos Aires (UTC-3)'],
+  ['Europe/London', 'Londres (UTC+0/1)'],
+  ['Europe/Paris', 'París (UTC+1/2)'],
+  ['Europe/Madrid', 'Madrid (UTC+1/2)'],
+  ['Europe/Berlin', 'Berlín (UTC+1/2)'],
+  ['Asia/Dubai', 'Dubái (UTC+4)'],
+  ['Asia/Riyadh', 'Riyadh (UTC+3)'],
+  ['Asia/Beirut', 'Beirut (UTC+2/3)'],
+  ['Africa/Casablanca', 'Casablanca (UTC+1)'],
+];
+
+function populateTzSelector() {
+  const sel = document.getElementById('tz-select');
+  if (!sel) return;
+  const browserTZ = Intl.DateTimeFormat().resolvedOptions().timeZone;
+  // Add browser timezone first if not in list
+  const allTZ = TZ_LIST.find(([tz]) => tz === browserTZ) ? TZ_LIST : [[browserTZ, `Navegador — ${browserTZ}`], ...TZ_LIST];
+  sel.innerHTML = allTZ.map(([tz, label]) =>
+    `<option value="${tz}" ${tz === userTZ ? 'selected' : ''}>${label}</option>`
+  ).join('');
+  updateTzPreview();
+}
+
+function applyTimezone(tz) {
+  userTZ = tz;
+  localStorage.setItem('vc_timezone', tz);
+  updateTzPreview();
+  // Re-render transcriptions with new timezone
+  renderTranscriptions();
+}
+
+function updateTzPreview() {
+  const el = document.getElementById('tz-current');
+  if (!el) return;
+  const now = new Date();
+  const timeStr = now.toLocaleTimeString(navigator.language || 'es', { hour:'2-digit', minute:'2-digit', timeZone: userTZ });
+  el.textContent = `Ahora mismo en esta zona: ${timeStr}`;
+}
+
 // ── Navigation ────────────────────────────────────────────────────────────────
 function showSection(name) {
   ['transcriptions','search','usage'].forEach(s => {
@@ -562,7 +648,7 @@ function showSection(name) {
   document.getElementById('btn-back').classList.toggle('hidden', !isSubPage);
   // On desktop keep hamburger visible always (sm:hidden handles it via CSS)
 
-  if (name === 'usage') loadUsage();
+  if (name === 'usage') { loadUsage(); populateTzSelector(); }
   closeSidebar();
 }
 
