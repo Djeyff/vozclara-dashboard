@@ -436,7 +436,8 @@ function renderTranscriptions() {
           ${formatBullets(r.summary || r.transcription || '').map(s => '<li><span>' + escHtml(s.slice(0,130)) + (s.length>130?'...':'') + '</span></li>').join('')}
         </ul>
       </div>
-      <div class="flex items-center gap-2 mt-2 pt-2 border-t border-white/5">
+      <button onclick="openPDF(${rowJson})" class="mt-2 text-xs text-amber-400/70 hover:text-amber-400 transition-colors text-left">Ver transcripción completa →</button>
+      <div class="flex items-center gap-2 mt-1.5 pt-2 border-t border-white/5">
         <button onclick="translateCard('${cardId}', ${rowJson})" class="text-xs text-amber-400 hover:text-amber-300 flex items-center gap-1 py-0.5">🌐 <span>Traducir</span></button>
         <select onchange="" class="card-lang-select input-field rounded-lg text-xs px-2 py-0.5 w-24" style="background:rgba(255,255,255,0.04)">
           <option value="en">English</option>
