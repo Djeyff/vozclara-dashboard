@@ -248,11 +248,10 @@
     </div>
     <!-- Actions — fixed footer -->
     <!-- Translate bar -->
-    <div id="modal-translate-bar" class="px-4 sm:px-5 pt-3 pb-0 flex-shrink-0">
-      <div id="modal-translated" class="hidden mb-2 p-3 rounded-xl bg-white/5 border border-white/8 text-xs text-gray-300 leading-relaxed"></div>
+    <div id="modal-translate-bar" class="px-4 sm:px-5 pt-2 pb-0 flex-shrink-0">
       <div class="flex gap-2 items-center">
-        <button onclick="translateModal()" id="modal-translate-btn" class="btn-secondary text-xs text-amber-400 hover:text-amber-300 px-3 py-2 rounded-xl flex-shrink-0">🌐 Traducir</button>
-        <select id="modal-lang-select" class="input-field rounded-xl text-xs px-2 py-2 flex-1 max-w-28">
+        <button onclick="translateModal()" id="modal-translate-btn" class="flex items-center gap-1.5 text-xs font-semibold px-3 py-1.5 rounded-full border border-amber-500/40 text-amber-400 hover:bg-amber-500/10 hover:border-amber-400 transition-all flex-shrink-0">🌐 <span id="modal-translate-label">Traducir</span></button>
+        <select id="modal-lang-select" class="input-field rounded-full text-xs px-2.5 py-1.5 w-28 border-amber-500/30 flex-shrink-0" style="background:rgba(255,255,255,0.05)">
           <option value="en">English</option>
           <option value="es">Español</option>
           <option value="fr">Français</option>
@@ -437,16 +436,15 @@ function renderTranscriptions() {
         </ul>
       </div>
       <button onclick="openPDF(${rowJson})" class="mt-2 text-xs text-amber-400/70 hover:text-amber-400 transition-colors text-left">Ver transcripción completa →</button>
-      <div class="flex items-center gap-2 mt-1.5 pt-2 border-t border-white/5">
-        <button onclick="translateCard('${cardId}', ${rowJson})" class="text-xs text-amber-400 hover:text-amber-300 flex items-center gap-1 py-0.5">🌐 <span>Traducir</span></button>
-        <select onchange="" class="card-lang-select input-field rounded-lg text-xs px-2 py-0.5 w-24" style="background:rgba(255,255,255,0.04)">
+      <div class="flex items-center gap-2 mt-2 pt-2 border-t border-white/5">
+        <button onclick="translateCard('${cardId}', ${rowJson})" class="card-translate-btn flex items-center gap-1.5 text-xs font-semibold px-3 py-1.5 rounded-full border border-amber-500/40 text-amber-400 hover:bg-amber-500/10 hover:border-amber-400 transition-all">🌐 <span class="card-translate-label">Traducir</span></button>
+        <select class="card-lang-select input-field rounded-full text-xs px-2.5 py-1 w-24 border-amber-500/30" style="background:rgba(255,255,255,0.04)">
           <option value="en">English</option>
           <option value="es">Español</option>
           <option value="fr">Français</option>
           <option value="pt">Português</option>
         </select>
       </div>
-      <div class="card-translated hidden mt-2 p-2 rounded-lg bg-white/5 text-xs text-gray-300 leading-relaxed"></div>
     </div>`;
   }).join('');
   list.classList.remove('hidden');
@@ -491,10 +489,12 @@ function openPDF(row) {
   }
 
   // Reset translate state
-  document.getElementById('modal-translated').classList.add('hidden');
-  document.getElementById('modal-translated').textContent = '';
-  document.getElementById('modal-translate-btn').textContent = '🌐 Traducir';
-  document.getElementById('modal-translate-btn').disabled = false;
+  modalTranslated = false; modalOriginalSummary = null; modalOriginalTranscript = null;
+  const mBtn = document.getElementById('modal-translate-btn');
+  document.getElementById('modal-translate-label').textContent = 'Traducir';
+  mBtn.disabled = false;
+  mBtn.classList.remove('border-green-500/50', 'text-green-400');
+  mBtn.classList.add('border-amber-500/40', 'text-amber-400');
 
   document.getElementById('pdf-modal').classList.remove('hidden');
   document.body.style.overflow = 'hidden';
@@ -659,61 +659,125 @@ async function logout() {
 }
 
 // ── Translate ─────────────────────────────────────────────────────────────────
+// Per-card state: store original bullets HTML so we can toggle back
+const cardOriginals = {};
+
 async function translateCard(cardId, row) {
   const card = document.getElementById(cardId);
   if (!card) return;
-  const btn = card.querySelector('button');
+  const btn = card.querySelector('.card-translate-btn');
+  const label = card.querySelector('.card-translate-label');
   const langSelect = card.querySelector('.card-lang-select');
-  const resultEl = card.querySelector('.card-translated');
+  const bulletsEl = card.querySelector('.txn-bullets');
   const lang = langSelect ? langSelect.value : 'en';
-  const text = row.transcription || '';
+
+  // Toggle back to original
+  if (label.textContent === 'Original' && cardOriginals[cardId]) {
+    bulletsEl.innerHTML = cardOriginals[cardId];
+    label.textContent = 'Traducir';
+    btn.classList.remove('border-green-500/50', 'text-green-400');
+    btn.classList.add('border-amber-500/40', 'text-amber-400');
+    return;
+  }
+
+  const text = row.transcription || row.summary || '';
   if (!text) return;
-  const origText = btn.querySelector('span').textContent;
-  btn.querySelector('span').textContent = '...';
+  label.textContent = '...';
   btn.disabled = true;
+
   try {
     const data = await apiFetch('/api/translate', {
-      method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify({ text, lang })
+      method: 'POST', headers: {'Content-Type':'application/json'},
+      body: JSON.stringify({ text: row.summary || row.transcription, lang })
     });
     if (data && data.translated) {
-      resultEl.textContent = data.translated;
-      resultEl.classList.remove('hidden');
-      btn.querySelector('span').textContent = 'Traducido ✓';
+      // Save original
+      cardOriginals[cardId] = bulletsEl.innerHTML;
+      // Replace bullets with translated version
+      const translated = parseSummaryBullets(data.translated, 3);
+      bulletsEl.innerHTML = translated.length
+        ? translated.map(s => `<li><span>${escHtml(s.slice(0,130))}${s.length>130?'...':''}</span></li>`).join('')
+        : `<li><span>${escHtml(data.translated.slice(0,300))}</span></li>`;
+      label.textContent = 'Original';
+      btn.classList.remove('border-amber-500/40', 'text-amber-400');
+      btn.classList.add('border-green-500/50', 'text-green-400');
     } else {
-      btn.querySelector('span').textContent = 'Error';
-      setTimeout(() => btn.querySelector('span').textContent = origText, 2000);
+      label.textContent = 'Error';
+      setTimeout(() => label.textContent = 'Traducir', 2000);
     }
   } catch {
-    btn.querySelector('span').textContent = 'Error';
-    setTimeout(() => btn.querySelector('span').textContent = origText, 2000);
+    label.textContent = 'Error';
+    setTimeout(() => label.textContent = 'Traducir', 2000);
   } finally {
     btn.disabled = false;
   }
 }
 
+// Modal translate: replaces summary bullets + transcript paragraphs in-place
+let modalOriginalSummary = null;
+let modalOriginalTranscript = null;
+let modalTranslated = false;
+
 async function translateModal() {
   if (!currentPdfRow) return;
   const btn = document.getElementById('modal-translate-btn');
+  const label = document.getElementById('modal-translate-label');
   const langSelect = document.getElementById('modal-lang-select');
-  const resultEl = document.getElementById('modal-translated');
+  const summaryEl = document.getElementById('pdf-summary');
+  const transcriptEl = document.getElementById('pdf-bullets');
+
+  // Toggle back to original
+  if (modalTranslated) {
+    if (modalOriginalSummary !== null) summaryEl.innerHTML = modalOriginalSummary;
+    if (modalOriginalTranscript !== null) transcriptEl.innerHTML = modalOriginalTranscript;
+    modalTranslated = false;
+    label.textContent = 'Traducir';
+    btn.classList.remove('border-green-500/50', 'text-green-400');
+    btn.classList.add('border-amber-500/40', 'text-amber-400');
+    return;
+  }
+
   const lang = langSelect.value;
-  const text = currentPdfRow.transcription || '';
-  if (!text) return;
-  btn.textContent = '⏳ Traduciendo...';
+  const transcriptText = currentPdfRow.transcription || '';
+  const summaryText = currentPdfRow.summary || '';
+  if (!transcriptText) return;
+
+  label.textContent = '...';
   btn.disabled = true;
+
   try {
-    const data = await apiFetch('/api/translate', {
-      method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify({ text, lang })
-    });
-    if (data && data.translated) {
-      resultEl.textContent = data.translated;
-      resultEl.classList.remove('hidden');
-      btn.textContent = '✓ Traducido';
+    // Translate both in parallel
+    const [tTranscript, tSummary] = await Promise.all([
+      apiFetch('/api/translate', { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify({ text: transcriptText, lang }) }),
+      summaryText ? apiFetch('/api/translate', { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify({ text: summaryText, lang }) }) : Promise.resolve(null),
+    ]);
+
+    if (tTranscript && tTranscript.translated) {
+      // Save originals
+      modalOriginalSummary = summaryEl.innerHTML;
+      modalOriginalTranscript = transcriptEl.innerHTML;
+
+      // Replace transcript paragraphs
+      const paras = formatTranscriptParagraphs(tTranscript.translated);
+      transcriptEl.innerHTML = paras.map(p => `<p class="txn-para">${escHtml(p)}</p>`).join('');
+
+      // Replace summary bullets
+      if (tSummary && tSummary.translated) {
+        const sBullets = parseSummaryBullets(tSummary.translated, 5);
+        summaryEl.innerHTML = '<ul class="txn-bullets">' + sBullets.map(s => `<li><span>${escHtml(s)}</span></li>`).join('') + '</ul>';
+      }
+
+      modalTranslated = true;
+      label.textContent = 'Original';
+      btn.classList.remove('border-amber-500/40', 'text-amber-400');
+      btn.classList.add('border-green-500/50', 'text-green-400');
     } else {
-      btn.textContent = '🌐 Traducir';
+      label.textContent = 'Error';
+      setTimeout(() => label.textContent = 'Traducir', 2000);
     }
   } catch {
-    btn.textContent = '🌐 Traducir';
+    label.textContent = 'Error';
+    setTimeout(() => label.textContent = 'Traducir', 2000);
   } finally {
     btn.disabled = false;
   }
