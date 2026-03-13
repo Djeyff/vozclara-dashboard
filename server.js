@@ -15,6 +15,15 @@ const SUPABASE_KEY = process.env.SUPABASE_SERVICE_KEY || process.env.SUPABASE_KE
 const GROQ_API_KEY = process.env.GROQ_API_KEY || '';
 // Internal VozClara business API for OTP delivery
 const VOZCLARA_API = (process.env.VOZCLARA_API_URL || 'https://api.voz-clara.com').replace(/\/$/, '');
+
+// Canonical tier limits — source of truth (overrides DB values which may be stale)
+const TIER_LIMITS = {
+  free:     { daily: 5,   monthly: 15,   audio: 15 },
+  basic:    { daily: 15,  monthly: 120,  audio: 120 },
+  pro:      { daily: 30,  monthly: 500,  audio: 500 },
+  business: { daily: 100, monthly: 2000, audio: 2000 },
+  expert:   { daily: 200, monthly: 5000, audio: 5000 },
+};
 // First 16 chars of VOZCLARA_MASTER_KEY — matches vozclara-business validation
 const INTERNAL_SECRET = (process.env.VOZCLARA_MASTER_KEY || process.env.INTERNAL_SECRET || '').slice(0, 16);
 
@@ -314,11 +323,11 @@ const server = http.createServer(async (req, res) => {
       phone_number: user.phone_number,
       tier: user.tier || 'free',
       daily_notes_used: user.daily_notes_used || 0,
-      daily_notes_limit: user.daily_notes_limit || 5,
+      daily_notes_limit: TIER_LIMITS[user.tier || 'free']?.daily || user.daily_notes_limit || 5,
       monthly_notes_used: user.monthly_notes_used || 0,
-      monthly_notes_limit: user.monthly_notes_limit || 15,
+      monthly_notes_limit: TIER_LIMITS[user.tier || 'free']?.monthly || user.monthly_notes_limit || 15,
       audio_minutes_used: Math.round((user.audio_minutes_used || 0) * 100) / 100,
-      audio_minutes_limit: user.audio_minutes_limit || 15,
+      audio_minutes_limit: TIER_LIMITS[user.tier || 'free']?.audio || user.audio_minutes_limit || 15,
       output_language: user.output_language || 'es',
     });
     return;
