@@ -142,7 +142,7 @@ async function sendOTPviaWhatsApp(phone, otp) {
   try {
     const r = await httpsPost(
       new URL(VOZCLARA_API).hostname,
-      '/api/internal/send-otp',
+      '/internal/send-otp',
       {},
       { phone, otp, secret: INTERNAL_SECRET }
     );
