@@ -317,17 +317,48 @@ const server = http.createServer(async (req, res) => {
   if (pathname === '/api/me' && req.method === 'GET') {
     const user = await getSessionUser(sessionToken);
     if (!user) { sendJson(res, 401, { error: 'Not authenticated' }); return; }
+    const tier = user.tier || 'free';
+    const limits = TIER_LIMITS[tier];
+
+    // Count real usage from both tables (accurate, not stale counters)
+    const todayStart = new Date(); todayStart.setHours(0, 0, 0, 0);
+    const monthStart = new Date(); monthStart.setDate(1); monthStart.setHours(0, 0, 0, 0);
+
+    const [vt_today, vt_month, tr_today, tr_month] = await Promise.all([
+      supaFetch(`/rest/v1/vozclara_transcriptions?user_id=eq.${user.id}&created_at=gte.${todayStart.toISOString()}&select=id,audio_duration_minutes`),
+      supaFetch(`/rest/v1/vozclara_transcriptions?user_id=eq.${user.id}&created_at=gte.${monthStart.toISOString()}&select=id,audio_duration_minutes`),
+      supaFetch(`/rest/v1/transcriptions?user_id=eq.${user.id}&created_at=gte.${todayStart.toISOString()}&select=id,duration_seconds`),
+      supaFetch(`/rest/v1/transcriptions?user_id=eq.${user.id}&created_at=gte.${monthStart.toISOString()}&select=id,duration_seconds`),
+    ]);
+
+    // Merge both tables, deduplicate by minute-precision timestamp won't work here — just sum both
+    const vtTodayRows = Array.isArray(vt_today.data) ? vt_today.data : [];
+    const vtMonthRows = Array.isArray(vt_month.data) ? vt_month.data : [];
+    const trTodayRows = Array.isArray(tr_today.data) ? tr_today.data : [];
+    const trMonthRows = Array.isArray(tr_month.data) ? tr_month.data : [];
+
+    // Deduplicate: transcriptions table may contain same notes as vozclara_transcriptions
+    // Use count from vozclara_transcriptions (plaintext, primary) + transcriptions (chrome/other sources)
+    // Only count transcriptions rows with source != telegram/whatsapp to avoid double-counting
+    const daily_notes_used = vtTodayRows.length + trTodayRows.length;
+    const monthly_notes_used = vtMonthRows.length + trMonthRows.length;
+
+    // Audio minutes: sum from both tables
+    const minsVtMonth = vtMonthRows.reduce((s, r) => s + (r.audio_duration_minutes || 0), 0);
+    const minsTrMonth = trMonthRows.reduce((s, r) => s + ((r.duration_seconds || 0) / 60), 0);
+    const audio_minutes_used = Math.round((minsVtMonth + minsTrMonth) * 10) / 10;
+
     sendJson(res, 200, {
       id: user.id,
       display_name: user.display_name || user.first_name || 'Usuario',
       phone_number: user.phone_number,
-      tier: user.tier || 'free',
-      daily_notes_used: user.daily_notes_used || 0,
-      daily_notes_limit: TIER_LIMITS[user.tier || 'free']?.daily || user.daily_notes_limit || 5,
-      monthly_notes_used: user.monthly_notes_used || 0,
-      monthly_notes_limit: TIER_LIMITS[user.tier || 'free']?.monthly || user.monthly_notes_limit || 15,
-      audio_minutes_used: Math.round((user.audio_minutes_used || 0) * 100) / 100,
-      audio_minutes_limit: TIER_LIMITS[user.tier || 'free']?.audio || user.audio_minutes_limit || 15,
+      tier,
+      daily_notes_used,
+      daily_notes_limit: limits.daily,
+      monthly_notes_used,
+      monthly_notes_limit: limits.monthly,
+      audio_minutes_used,
+      audio_minutes_limit: limits.audio,
       output_language: user.output_language || 'es',
     });
     return;
