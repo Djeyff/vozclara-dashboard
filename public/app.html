@@ -208,11 +208,13 @@
   <div class="bg-[#0c0920] border border-white/10 rounded-t-2xl sm:rounded-2xl w-full sm:max-w-lg flex flex-col" style="max-height:88vh">
     <!-- Header — fixed -->
     <div class="flex items-center justify-between px-4 sm:px-5 py-4 border-b border-white/10 flex-shrink-0">
-      <div class="flex items-center gap-2 min-w-0">
+      <button onclick="closePDF()" class="flex items-center gap-1.5 text-amber-400 hover:text-amber-300 font-medium text-sm flex-shrink-0 py-1 pr-2">
+        <span class="text-lg leading-none">‹</span> Volver
+      </button>
+      <div class="flex items-center gap-2 min-w-0 flex-1 justify-end">
         <div id="modal-source-badge" class="source-badge source-telegram flex-shrink-0">Telegram</div>
         <div id="modal-meta" class="text-xs text-gray-500 truncate">—</div>
       </div>
-      <button onclick="closePDF()" class="text-gray-400 hover:text-white text-xl w-8 h-8 flex items-center justify-center flex-shrink-0 ml-2">✕</button>
     </div>
     <!-- Scrollable body -->
     <div class="flex-1 overflow-y-auto px-4 sm:px-5 py-4">
@@ -236,7 +238,23 @@
       </div>
     </div>
     <!-- Actions — fixed footer -->
-    <div class="flex gap-2 px-4 sm:px-5 py-4 border-t border-white/10 flex-shrink-0">
+    <!-- Translate bar -->
+    <div id="modal-translate-bar" class="px-4 sm:px-5 pt-3 pb-0 flex-shrink-0">
+      <div id="modal-translated" class="hidden mb-2 p-3 rounded-xl bg-white/5 border border-white/8 text-xs text-gray-300 leading-relaxed"></div>
+      <div class="flex gap-2 items-center">
+        <button onclick="translateModal()" id="modal-translate-btn" class="btn-secondary text-xs text-amber-400 hover:text-amber-300 px-3 py-2 rounded-xl flex-shrink-0">🌐 Traducir</button>
+        <select id="modal-lang-select" class="input-field rounded-xl text-xs px-2 py-2 flex-1 max-w-28">
+          <option value="en">English</option>
+          <option value="es">Español</option>
+          <option value="fr">Français</option>
+          <option value="pt">Português</option>
+          <option value="de">Deutsch</option>
+          <option value="it">Italiano</option>
+          <option value="ar">Arabic</option>
+        </select>
+      </div>
+    </div>
+    <div class="flex gap-2 px-4 sm:px-5 py-3 border-t border-white/10 flex-shrink-0 mt-3">
       <button onclick="copyText()" class="btn-secondary flex-1 text-xs text-white px-3 py-2.5 rounded-xl">📋 Copiar</button>
       <button onclick="downloadTxt()" class="btn-secondary flex-1 text-xs text-white px-3 py-2.5 rounded-xl">⬇️ Descargar .txt</button>
     </div>
@@ -368,19 +386,32 @@ function renderTranscriptions() {
     const dur = r.audio_duration_minutes ? (r.audio_duration_minutes * 60).toFixed(0) + 's' : '';
     const preview = (r.transcription || '').slice(0, 140);
     const rowJson = JSON.stringify(r).replace(/"/g, '&quot;');
+    const cardId = 'card-' + (r.id || Math.random().toString(36).slice(2));
     return `
-    <div class="card card-hover rounded-xl p-3 sm:p-4 transition-colors" onclick="openPDF(${rowJson})">
-      <div class="flex items-center justify-between mb-2 gap-2 flex-wrap">
-        <div class="flex items-center gap-1.5 flex-wrap">
-          <span class="source-badge ${srcClass}">${srcLabel}</span>
-          ${dur ? '<span class="text-xs text-gray-600">🎙️ ' + dur + '</span>' : ''}
-          ${r.language ? '<span class="text-xs text-gray-600">' + r.language + '</span>' : ''}
+    <div id="${cardId}" class="card rounded-xl p-3 sm:p-4 transition-colors">
+      <div class="card-hover rounded-lg p-1 -m-1 mb-0 cursor-pointer" onclick="openPDF(${rowJson})">
+        <div class="flex items-center justify-between mb-2 gap-2 flex-wrap">
+          <div class="flex items-center gap-1.5 flex-wrap">
+            <span class="source-badge ${srcClass}">${srcLabel}</span>
+            ${dur ? '<span class="text-xs text-gray-600">🎙️ ' + dur + '</span>' : ''}
+            ${r.language ? '<span class="text-xs text-gray-600">' + r.language + '</span>' : ''}
+          </div>
+          <span class="text-xs text-gray-600 flex-shrink-0">${date} ${time}</span>
         </div>
-        <span class="text-xs text-gray-600 flex-shrink-0">${date} ${time}</span>
+        <ul class="txn-bullets text-sm text-gray-300 mt-1">
+          ${formatBullets(r.summary || r.transcription || '').map(s => '<li><span>' + escHtml(s.slice(0,130)) + (s.length>130?'...':'') + '</span></li>').join('')}
+        </ul>
       </div>
-      <ul class="txn-bullets text-sm text-gray-300 mt-1">
-        ${formatBullets(r.summary || r.transcription || '').map(s => '<li><span>' + escHtml(s.slice(0,130)) + (s.length>130?'...':'') + '</span></li>').join('')}
-      </ul>
+      <div class="flex items-center gap-2 mt-2 pt-2 border-t border-white/5">
+        <button onclick="translateCard('${cardId}', ${rowJson})" class="text-xs text-amber-400 hover:text-amber-300 flex items-center gap-1 py-0.5">🌐 <span>Traducir</span></button>
+        <select onchange="" class="card-lang-select input-field rounded-lg text-xs px-2 py-0.5 w-24" style="background:rgba(255,255,255,0.04)">
+          <option value="en">English</option>
+          <option value="es">Español</option>
+          <option value="fr">Français</option>
+          <option value="pt">Português</option>
+        </select>
+      </div>
+      <div class="card-translated hidden mt-2 p-2 rounded-lg bg-white/5 text-xs text-gray-300 leading-relaxed"></div>
     </div>`;
   }).join('');
   list.classList.remove('hidden');
@@ -423,6 +454,12 @@ function openPDF(row) {
   } else {
     ul.innerHTML = '<p class="txn-para text-gray-500">(sin transcripción)</p>';
   }
+
+  // Reset translate state
+  document.getElementById('modal-translated').classList.add('hidden');
+  document.getElementById('modal-translated').textContent = '';
+  document.getElementById('modal-translate-btn').textContent = '🌐 Traducir';
+  document.getElementById('modal-translate-btn').disabled = false;
 
   document.getElementById('pdf-modal').classList.remove('hidden');
   document.body.style.overflow = 'hidden';
@@ -532,6 +569,67 @@ function showSection(name) {
 async function logout() {
   await fetch('/api/logout', { method: 'POST', credentials: 'include' });
   window.location.href = '/login';
+}
+
+// ── Translate ─────────────────────────────────────────────────────────────────
+async function translateCard(cardId, row) {
+  const card = document.getElementById(cardId);
+  if (!card) return;
+  const btn = card.querySelector('button');
+  const langSelect = card.querySelector('.card-lang-select');
+  const resultEl = card.querySelector('.card-translated');
+  const lang = langSelect ? langSelect.value : 'en';
+  const text = row.transcription || '';
+  if (!text) return;
+  const origText = btn.querySelector('span').textContent;
+  btn.querySelector('span').textContent = '...';
+  btn.disabled = true;
+  try {
+    const data = await apiFetch('/api/translate', {
+      method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify({ text, lang })
+    });
+    if (data && data.translated) {
+      resultEl.textContent = data.translated;
+      resultEl.classList.remove('hidden');
+      btn.querySelector('span').textContent = 'Traducido ✓';
+    } else {
+      btn.querySelector('span').textContent = 'Error';
+      setTimeout(() => btn.querySelector('span').textContent = origText, 2000);
+    }
+  } catch {
+    btn.querySelector('span').textContent = 'Error';
+    setTimeout(() => btn.querySelector('span').textContent = origText, 2000);
+  } finally {
+    btn.disabled = false;
+  }
+}
+
+async function translateModal() {
+  if (!currentPdfRow) return;
+  const btn = document.getElementById('modal-translate-btn');
+  const langSelect = document.getElementById('modal-lang-select');
+  const resultEl = document.getElementById('modal-translated');
+  const lang = langSelect.value;
+  const text = currentPdfRow.transcription || '';
+  if (!text) return;
+  btn.textContent = '⏳ Traduciendo...';
+  btn.disabled = true;
+  try {
+    const data = await apiFetch('/api/translate', {
+      method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify({ text, lang })
+    });
+    if (data && data.translated) {
+      resultEl.textContent = data.translated;
+      resultEl.classList.remove('hidden');
+      btn.textContent = '✓ Traducido';
+    } else {
+      btn.textContent = '🌐 Traducir';
+    }
+  } catch {
+    btn.textContent = '🌐 Traducir';
+  } finally {
+    btn.disabled = false;
+  }
 }
 
 // Close modal on backdrop click

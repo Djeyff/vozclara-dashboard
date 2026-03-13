@@ -444,6 +444,31 @@ const server = http.createServer(async (req, res) => {
     return;
   }
 
+  // ── API: Translate ──
+  if (pathname === '/api/translate' && req.method === 'POST') {
+    const user = await getSessionUser(sessionToken);
+    if (!user) { sendJson(res, 401, { error: 'Not authenticated' }); return; }
+    const body = await parseBody(req);
+    const { text, lang } = body;
+    if (!text) { sendJson(res, 400, { error: 'Missing text' }); return; }
+    const targetLang = lang || 'en';
+    const langNames = { en: 'English', es: 'Spanish', fr: 'French', pt: 'Portuguese', de: 'German', it: 'Italian', ar: 'Arabic' };
+    const langLabel = langNames[targetLang] || targetLang;
+    try {
+      const r = await httpsPost('api.groq.com', '/openai/v1/chat/completions',
+        { 'Authorization': `Bearer ${GROQ_API_KEY}` },
+        { model: 'llama-3.3-70b-versatile', messages: [{ role: 'user', content: `Translate the following to ${langLabel}. Return only the translation, no explanations:\n\n${text}` }], temperature: 0.1, max_tokens: 1000 }
+      );
+      if (r.status === 200) {
+        const translated = r.body?.choices?.[0]?.message?.content?.trim() || '';
+        sendJson(res, 200, { translated });
+      } else {
+        sendJson(res, 500, { error: 'Translation failed' });
+      }
+    } catch (e) { sendJson(res, 500, { error: e.message }); }
+    return;
+  }
+
   // ── API: Logout ──
   if (pathname === '/api/logout' && req.method === 'POST') {
     if (sessionToken) {
