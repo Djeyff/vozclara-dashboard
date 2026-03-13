@@ -331,10 +331,57 @@ const server = http.createServer(async (req, res) => {
     const limit = Math.min(parseInt(parsed.query.limit) || 50, 200);
     const offset = parseInt(parsed.query.offset) || 0;
     const q = (parsed.query.q || '').toLowerCase();
-    const r = await supaFetch(
-      `/rest/v1/vozclara_transcriptions?user_id=eq.${user.id}&select=id,transcription,summary,language,audio_duration_minutes,duration_seconds,from_number,telegram_id,created_at&order=created_at.desc&limit=${limit}&offset=${offset}`
-    );
-    let rows = Array.isArray(r.data) ? r.data : [];
+
+    // Fetch from both tables in parallel
+    const [r1, r2] = await Promise.all([
+      supaFetch(`/rest/v1/vozclara_transcriptions?user_id=eq.${user.id}&select=id,transcription,summary,language,audio_duration_minutes,duration_seconds,from_number,telegram_id,created_at&order=created_at.desc&limit=200`),
+      supaFetch(`/rest/v1/transcriptions?user_id=eq.${user.id}&select=id,text,summary,language,duration_seconds,source,sender_name,chat_name,created_at&order=created_at.desc&limit=200`),
+    ]);
+
+    // Normalize vozclara_transcriptions rows
+    const rows1 = (Array.isArray(r1.data) ? r1.data : [])
+      .filter(r => r.transcription) // only rows WITH text
+      .map(r => ({
+        id: r.id,
+        transcription: r.transcription,
+        summary: r.summary,
+        language: r.language,
+        audio_duration_minutes: r.audio_duration_minutes,
+        duration_seconds: r.duration_seconds,
+        from_number: r.from_number,
+        telegram_id: r.telegram_id,
+        created_at: r.created_at,
+      }));
+
+    // Normalize transcriptions rows (WhatsApp/Chrome via unified table)
+    const rows2 = (Array.isArray(r2.data) ? r2.data : [])
+      .filter(r => r.text) // only rows WITH text
+      .map(r => ({
+        id: r.id,
+        transcription: r.text,
+        summary: r.summary,
+        language: r.language,
+        audio_duration_minutes: r.duration_seconds ? r.duration_seconds / 60 : null,
+        duration_seconds: r.duration_seconds,
+        from_number: r.source === 'whatsapp' ? (r.sender_name || 'WhatsApp') : null,
+        telegram_id: r.source === 'telegram' ? 1 : null,
+        created_at: r.created_at,
+      }));
+
+    // Merge + deduplicate by created_at proximity (same second = same record)
+    const seen = new Set(rows1.map(r => r.created_at?.slice(0,19)));
+    const merged = [...rows1];
+    for (const r of rows2) {
+      if (!seen.has(r.created_at?.slice(0,19))) {
+        merged.push(r);
+        seen.add(r.created_at?.slice(0,19));
+      }
+    }
+
+    // Sort by date desc, apply offset+limit
+    merged.sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
+    let rows = merged.slice(offset, offset + limit);
+
     if (q) {
       rows = rows.filter(row =>
         (row.transcription || '').toLowerCase().includes(q) ||
@@ -358,10 +405,15 @@ const server = http.createServer(async (req, res) => {
       const baseTerms = question.toLowerCase().split(/\s+/).filter(t => t.length > 1);
       const terms = [...new Set([...baseTerms, ...expandedTerms])];
 
-      const allR = await supaFetch(
-        `/rest/v1/vozclara_transcriptions?user_id=eq.${user.id}&select=id,transcription,summary,language,audio_duration_minutes,created_at&order=created_at.desc&limit=300`
-      );
-      const allRows = Array.isArray(allR.data) ? allR.data : [];
+      const [allR, allR2] = await Promise.all([
+        supaFetch(`/rest/v1/vozclara_transcriptions?user_id=eq.${user.id}&select=id,transcription,summary,language,audio_duration_minutes,created_at&order=created_at.desc&limit=300`),
+        supaFetch(`/rest/v1/transcriptions?user_id=eq.${user.id}&select=id,text,summary,language,duration_seconds,created_at&order=created_at.desc&limit=300`),
+      ]);
+      const seen2 = new Set();
+      const allRows = [
+        ...(Array.isArray(allR.data) ? allR.data : []).filter(r => r.transcription).map(r => { seen2.add(r.created_at?.slice(0,19)); return r; }),
+        ...(Array.isArray(allR2.data) ? allR2.data : []).filter(r => r.text && !seen2.has(r.created_at?.slice(0,19))).map(r => ({ ...r, transcription: r.text, audio_duration_minutes: r.duration_seconds ? r.duration_seconds/60 : null })),
+      ];
       const scored = allRows
         .map(r => ({ ...r, _score: keywordScore(r, terms) }))
         .filter(r => r._score > 0)
