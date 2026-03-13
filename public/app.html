@@ -61,7 +61,7 @@
   <div id="sidebar" class="sidebar flex flex-col w-52 flex-shrink-0 p-4 overflow-y-auto">
     <div class="flex items-center justify-between mb-6 px-1">
       <div class="flex items-center gap-2">
-        <div class="w-8 h-8 rounded-lg flex items-center justify-center text-sm font-bold" style="background:linear-gradient(135deg,#D97706,#F59E0B)">🎙️</div>
+        <img src="/logo.png" alt="VozClara" class="w-8 h-8 rounded-lg object-contain" />
         <span class="font-bold gold-text">VozClara</span>
       </div>
       <button class="sm:hidden text-gray-500 hover:text-white text-lg" onclick="closeSidebar()">✕</button>
@@ -333,8 +333,10 @@ function renderTranscriptions() {
         </div>
         <span class="text-xs text-gray-600 flex-shrink-0">${date} ${time}</span>
       </div>
-      <p class="text-sm text-gray-300 leading-relaxed line-clamp-3">${preview}${(r.transcription||'').length > 140 ? '...' : ''}</p>
-      ${r.summary ? '<p class="text-xs text-gray-500 mt-2 line-clamp-2 border-t border-white/5 pt-2">📝 ' + r.summary.replace(/^\*\s*/gm,'').slice(0,100) + '...</p>' : ''}
+      <ul class="txn-bullets text-sm text-gray-300 mt-1">
+        ${formatBullets((r.transcription||'')).slice(0,3).map(s => '<li><span>' + escHtml(s.slice(0,120)) + (s.length>120?'...':'') + '</span></li>').join('')}
+      </ul>
+      ${r.summary ? '<p class="text-xs text-gray-500 mt-2 line-clamp-1 border-t border-white/5 pt-2">📝 ' + escHtml(r.summary.replace(/^\*\s*/gm,'').slice(0,90)) + '...</p>' : ''}
     </div>`;
   }).join('');
   list.classList.remove('hidden');
