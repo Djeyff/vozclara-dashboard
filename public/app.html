@@ -90,7 +90,12 @@
 
     <!-- Top bar -->
     <div class="flex items-center gap-3 px-3 sm:px-5 py-3 border-b border-white/8 flex-shrink-0">
-      <button class="sm:hidden text-gray-400 hover:text-white text-xl w-8 h-8 flex items-center justify-center flex-shrink-0" onclick="openSidebar()">☰</button>
+      <!-- Hamburger (main page only) -->
+      <button id="btn-hamburger" class="sm:hidden text-gray-400 hover:text-white text-xl w-8 h-8 flex items-center justify-center flex-shrink-0" onclick="openSidebar()">☰</button>
+      <!-- Back button (sub-pages) -->
+      <button id="btn-back" class="hidden text-amber-400 hover:text-amber-300 flex items-center gap-1 text-sm font-medium flex-shrink-0 py-1 pr-2" onclick="showSection('transcriptions')">
+        <span class="text-lg leading-none">‹</span> Volver
+      </button>
       <div class="flex-1 min-w-0">
         <h1 id="page-title" class="font-semibold text-sm sm:text-base text-white truncate">Mis Transcripciones</h1>
       </div>
@@ -513,6 +518,13 @@ function showSection(name) {
   });
   const titles = { transcriptions: 'Mis Transcripciones', search: 'Buscar con IA', usage: 'Mi Plan' };
   document.getElementById('page-title').textContent = titles[name];
+
+  // Sub-pages (search, usage) → show ← Volver, hide ☰
+  const isSubPage = name !== 'transcriptions';
+  document.getElementById('btn-hamburger').classList.toggle('hidden', isSubPage);
+  document.getElementById('btn-back').classList.toggle('hidden', !isSubPage);
+  // On desktop keep hamburger visible always (sm:hidden handles it via CSS)
+
   if (name === 'usage') loadUsage();
   closeSidebar();
 }
