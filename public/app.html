@@ -37,9 +37,8 @@
   .txn-bullets { list-style: none; padding: 0; margin: 0; }
   .txn-bullets li { display: flex; gap: 8px; padding: 3px 0; line-height: 1.55; }
   .txn-bullets li::before { content: '•'; color: #F59E0B; font-weight: bold; flex-shrink: 0; margin-top: 0; }
-  /* Paragraph transcription (no dot) */
-  .txn-bullets li.para { display: block; padding: 0 0 10px 0; }
-  .txn-bullets li.para::before { content: none; }
+  /* Paragraph transcription — plain text blocks, no bullet */
+  .txn-para { color: #d1d5db; font-size: 14px; line-height: 1.6; margin: 0 0 10px 0; }
 
   /* Mobile sidebar overlay */
   #sidebar-overlay { display: none; }
@@ -228,7 +227,7 @@
           <span class="text-base">📝</span>
           <span class="text-xs text-gray-500 font-semibold uppercase tracking-wide">Transcripción</span>
         </div>
-        <ul id="pdf-bullets" class="txn-bullets text-sm text-gray-200"></ul>
+        <div id="pdf-bullets"></div>
       </div>
     </div>
     <!-- Actions — fixed footer -->
@@ -278,10 +277,11 @@ function closeSidebar() {
 }
 
 // ── Format transcription as bullet points ─────────────────────────────────────
-// Parse summary/AI text — converts * or - markers into clean bullet strings (1-3 max)
+// Parse summary/AI text — handles both \n* and inline " * " bullet patterns
 function parseSummaryBullets(text, max = 3) {
   if (!text) return [];
-  const raw = text.trim();
+  // Normalize inline " * " separators (AI often returns on one line)
+  const raw = text.trim().replace(/ \* /g, '\n* ').replace(/\.\s*\*/g, '.\n*');
   const hasBullets = /(?:^|\n)\s*[•\-\*]\s/m.test(raw);
   let items;
   if (hasBullets) {
@@ -290,7 +290,7 @@ function parseSummaryBullets(text, max = 3) {
     items = (raw.match(/[^.!?]+[.!?]+/g) || [raw]).map(s => s.trim()).filter(s => s.length > 3);
   }
   const len = raw.length;
-  const count = len < 60 ? 1 : len < 200 ? Math.min(2, items.length) : Math.min(max, items.length);
+  const count = len < 80 ? 1 : len < 220 ? Math.min(2, items.length) : Math.min(max, items.length);
   return items.slice(0, count);
 }
 
@@ -414,9 +414,9 @@ function openPDF(row) {
   const paras = formatTranscriptParagraphs(row.transcription);
   const ul = document.getElementById('pdf-bullets');
   if (paras.length > 0) {
-    ul.innerHTML = paras.map(p => '<li class="para"><span>' + escHtml(p) + '</span></li>').join('');
+    ul.innerHTML = paras.map(p => '<p class="txn-para">' + escHtml(p) + '</p>').join('');
   } else {
-    ul.innerHTML = '<li class="para"><span class="text-gray-500">(sin transcripción)</span></li>';
+    ul.innerHTML = '<p class="txn-para text-gray-500">(sin transcripción)</p>';
   }
 
   document.getElementById('pdf-modal').classList.remove('hidden');
