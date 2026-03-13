@@ -1,0 +1,408 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>VozClara — Mi panel</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<style>
+  body { background: #07011a; font-family: 'Inter', system-ui, sans-serif; }
+  .sidebar { background: rgba(255,255,255,0.03); border-right: 1px solid rgba(255,255,255,0.07); }
+  .card { background: rgba(255,255,255,0.04); border: 1px solid rgba(255,255,255,0.08); }
+  .card-hover:hover { background: rgba(255,255,255,0.06); cursor: pointer; }
+  .btn-primary { background: linear-gradient(135deg, #7c3aed, #4f46e5); }
+  .btn-primary:hover { opacity: 0.9; }
+  .input-field { background: rgba(255,255,255,0.05); border: 1px solid rgba(139,92,246,0.3); color: white; }
+  .input-field:focus { outline: none; border-color: #7c3aed; }
+  .input-field::placeholder { color: rgba(255,255,255,0.25); }
+  .progress-bar { background: linear-gradient(90deg, #7c3aed, #818cf8); border-radius: 4px; transition: width 0.5s; }
+  .tier-badge { padding: 2px 10px; border-radius: 20px; font-size: 11px; font-weight: 600; }
+  .tier-free { background: rgba(107,114,128,0.2); color: #9ca3af; }
+  .tier-basic { background: rgba(59,130,246,0.2); color: #60a5fa; }
+  .tier-pro { background: rgba(139,92,246,0.2); color: #a78bfa; }
+  .tier-business { background: rgba(245,158,11,0.15); color: #fbbf24; }
+  .nav-item { padding: 8px 12px; border-radius: 8px; cursor: pointer; transition: background 0.15s; color: rgba(255,255,255,0.5); font-size: 14px; }
+  .nav-item:hover, .nav-item.active { background: rgba(124,58,237,0.15); color: white; }
+  .source-badge { font-size: 10px; padding: 2px 8px; border-radius: 10px; }
+  .source-telegram { background: rgba(0,136,204,0.2); color: #38bdf8; }
+  .source-whatsapp { background: rgba(37,211,102,0.2); color: #4ade80; }
+  .source-chrome { background: rgba(255,167,0,0.15); color: #fbbf24; }
+  .answer-card { background: linear-gradient(135deg, rgba(124,58,237,0.1), rgba(79,70,229,0.1)); border: 1px solid rgba(124,58,237,0.25); }
+  ::-webkit-scrollbar { width: 4px; } ::-webkit-scrollbar-track { background: transparent; } ::-webkit-scrollbar-thumb { background: rgba(124,58,237,0.4); border-radius: 4px; }
+  @media (max-width: 640px) { .sidebar { display: none; } .sidebar.open { display: flex; position: fixed; z-index: 50; height: 100vh; width: 220px; } }
+</style>
+</head>
+<body class="text-white min-h-screen">
+
+<div class="flex h-screen overflow-hidden">
+
+  <!-- Sidebar -->
+  <div id="sidebar" class="sidebar flex flex-col w-52 flex-shrink-0 p-4">
+    <div class="flex items-center gap-2 mb-6 px-2">
+      <div class="w-8 h-8 rounded-lg bg-violet-600 flex items-center justify-center text-base">🎙️</div>
+      <span class="font-bold text-white">VozClara</span>
+    </div>
+
+    <nav class="flex-1 space-y-1">
+      <div class="nav-item active" onclick="showSection('transcriptions')" id="nav-transcriptions">
+        🎙️ Transcripciones
+      </div>
+      <div class="nav-item" onclick="showSection('search')" id="nav-search">
+        🔍 Buscar con IA
+      </div>
+      <div class="nav-item" onclick="showSection('usage')" id="nav-usage">
+        📊 Mi plan
+      </div>
+    </nav>
+
+    <div class="mt-auto pt-4 border-t border-white/10">
+      <div id="sidebar-user" class="px-2 mb-3">
+        <div class="text-xs text-gray-500">Cuenta</div>
+        <div id="sidebar-name" class="text-sm text-white font-medium truncate">—</div>
+        <div id="sidebar-tier-badge" class="tier-badge tier-free mt-1 inline-block">free</div>
+      </div>
+      <div class="nav-item text-red-400 hover:text-red-300" onclick="logout()">← Cerrar sesión</div>
+    </div>
+  </div>
+
+  <!-- Main -->
+  <div class="flex-1 flex flex-col overflow-hidden">
+
+    <!-- Top bar -->
+    <div class="flex items-center gap-3 px-4 py-3 border-b border-white/8">
+      <button class="sm:hidden text-gray-400 hover:text-white" onclick="toggleSidebar()">☰</button>
+      <div class="flex-1">
+        <h1 id="page-title" class="font-semibold text-base text-white">Mis Transcripciones</h1>
+      </div>
+      <div id="user-greeting" class="text-sm text-gray-400 hidden sm:block">—</div>
+    </div>
+
+    <!-- Content -->
+    <div class="flex-1 overflow-y-auto p-4 sm:p-6">
+
+      <!-- ── Transcriptions ── -->
+      <div id="section-transcriptions">
+        <!-- Search bar -->
+        <div class="flex gap-3 mb-5">
+          <input id="txn-search" type="text" placeholder="Filtrar transcripciones..."
+            class="input-field flex-1 rounded-xl px-4 py-2.5 text-sm"
+            oninput="filterTranscriptions()" />
+          <select id="txn-source" onchange="filterTranscriptions()"
+            class="input-field rounded-xl px-3 py-2.5 text-sm">
+            <option value="">Todos</option>
+            <option value="telegram">Telegram</option>
+            <option value="whatsapp">WhatsApp</option>
+            <option value="chrome">Chrome</option>
+          </select>
+        </div>
+
+        <div id="txn-loading" class="text-center py-12 text-gray-500 text-sm">Cargando...</div>
+        <div id="txn-list" class="space-y-3 hidden"></div>
+        <div id="txn-empty" class="hidden text-center py-12 text-gray-500 text-sm">
+          No hay transcripciones aún.<br>
+          <span class="text-xs">Envía una nota de voz al bot de Telegram o WhatsApp para comenzar.</span>
+        </div>
+        <div id="txn-load-more" class="hidden text-center mt-4">
+          <button onclick="loadMore()" class="text-violet-400 hover:text-violet-300 text-sm">Cargar más</button>
+        </div>
+      </div>
+
+      <!-- ── AI Search ── -->
+      <div id="section-search" class="hidden">
+        <div class="max-w-2xl">
+          <p class="text-gray-400 text-sm mb-4">Pregunta algo sobre tus notas de voz. Busco en todos los idiomas.</p>
+          <div class="flex gap-3 mb-4">
+            <input id="search-input" type="text" placeholder="¿Qué dijiste sobre el proyecto la semana pasada?"
+              class="input-field flex-1 rounded-xl px-4 py-3 text-sm" onkeydown="if(event.key==='Enter')doSearch()" />
+            <button onclick="doSearch()" id="search-btn"
+              class="btn-primary text-white px-5 py-3 rounded-xl text-sm font-semibold whitespace-nowrap">
+              Buscar
+            </button>
+          </div>
+          <div id="search-loading" class="hidden text-center py-8 text-gray-500 text-sm">🔍 Buscando...</div>
+          <div id="search-answer" class="hidden answer-card rounded-xl p-4 mb-4">
+            <div class="text-xs text-violet-400 mb-2 font-semibold">Respuesta IA</div>
+            <div id="answer-text" class="text-sm text-gray-200 leading-relaxed"></div>
+          </div>
+          <div id="search-sources" class="hidden space-y-2">
+            <div class="text-xs text-gray-500 mb-2">Fuentes</div>
+            <div id="sources-list"></div>
+          </div>
+          <div id="search-empty" class="hidden text-center py-8 text-gray-500 text-sm">No encontré coincidencias.</div>
+        </div>
+      </div>
+
+      <!-- ── Usage / Plan ── -->
+      <div id="section-usage" class="hidden">
+        <div class="max-w-xl space-y-4">
+          <!-- Plan card -->
+          <div class="card rounded-2xl p-5">
+            <div class="flex items-center justify-between mb-4">
+              <div>
+                <div class="text-xs text-gray-500 mb-1">Tu plan actual</div>
+                <div id="plan-name" class="text-xl font-bold text-white capitalize">—</div>
+              </div>
+              <div id="plan-badge-big" class="tier-badge tier-free text-sm px-3 py-1">—</div>
+            </div>
+          </div>
+
+          <!-- Daily notes -->
+          <div class="card rounded-2xl p-5">
+            <div class="flex justify-between text-sm mb-2">
+              <span class="text-gray-400">Notas hoy</span>
+              <span id="daily-count" class="text-white font-medium">—</span>
+            </div>
+            <div class="bg-white/10 rounded-full h-2">
+              <div id="daily-bar" class="progress-bar h-2" style="width:0%"></div>
+            </div>
+          </div>
+
+          <!-- Monthly notes -->
+          <div class="card rounded-2xl p-5">
+            <div class="flex justify-between text-sm mb-2">
+              <span class="text-gray-400">Notas este mes</span>
+              <span id="monthly-count" class="text-white font-medium">—</span>
+            </div>
+            <div class="bg-white/10 rounded-full h-2">
+              <div id="monthly-bar" class="progress-bar h-2" style="width:0%"></div>
+            </div>
+          </div>
+
+          <!-- Audio minutes -->
+          <div class="card rounded-2xl p-5">
+            <div class="flex justify-between text-sm mb-2">
+              <span class="text-gray-400">Minutos de audio este mes</span>
+              <span id="audio-count" class="text-white font-medium">—</span>
+            </div>
+            <div class="bg-white/10 rounded-full h-2">
+              <div id="audio-bar" class="progress-bar h-2" style="width:0%"></div>
+            </div>
+          </div>
+
+          <!-- Upgrade CTA -->
+          <div id="upgrade-cta" class="card rounded-2xl p-5 border-violet-500/30 hidden">
+            <div class="text-sm font-semibold text-white mb-1">Mejora tu plan</div>
+            <div class="text-xs text-gray-400 mb-3">Obtén más notas, minutos y funciones avanzadas.</div>
+            <a href="https://voz-clara.com/#pricing" target="_blank"
+              class="btn-primary inline-block text-white text-sm font-semibold px-4 py-2 rounded-xl">
+              Ver planes →
+            </a>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+<!-- PDF Modal -->
+<div id="pdf-modal" class="hidden fixed inset-0 bg-black/70 flex items-center justify-center z-50 p-4">
+  <div class="bg-[#0f0628] border border-white/10 rounded-2xl p-6 w-full max-w-lg max-h-[80vh] overflow-y-auto">
+    <div class="flex items-center justify-between mb-4">
+      <h3 class="font-semibold text-white">Transcripción completa</h3>
+      <button onclick="closePDF()" class="text-gray-400 hover:text-white text-xl">✕</button>
+    </div>
+    <div id="pdf-text" class="text-sm text-gray-300 leading-relaxed whitespace-pre-wrap mb-4"></div>
+    <div id="pdf-summary" class="text-xs text-gray-500 border-t border-white/10 pt-3 mt-3"></div>
+    <div class="flex gap-2 mt-4">
+      <button onclick="copyText()" class="text-xs bg-white/10 hover:bg-white/15 text-white px-4 py-2 rounded-lg">📋 Copiar</button>
+      <button onclick="downloadTxt()" class="text-xs bg-white/10 hover:bg-white/15 text-white px-4 py-2 rounded-lg">⬇️ Descargar .txt</button>
+    </div>
+  </div>
+</div>
+
+<script>
+let allTranscriptions = [];
+let offset = 0;
+const LIMIT = 30;
+let currentPdfRow = null;
+let user = null;
+
+// ── Init ──────────────────────────────────────────────────────────────────────
+async function init() {
+  const me = await apiFetch('/api/me');
+  if (!me) { window.location.href = '/login'; return; }
+  user = me;
+  document.getElementById('sidebar-name').textContent = me.display_name;
+  document.getElementById('user-greeting').textContent = 'Hola, ' + me.display_name;
+  const tierClass = 'tier-' + (me.tier || 'free');
+  document.getElementById('sidebar-tier-badge').className = 'tier-badge ' + tierClass;
+  document.getElementById('sidebar-tier-badge').textContent = (me.tier || 'free').toUpperCase();
+  loadTranscriptions();
+}
+
+async function apiFetch(url, opts = {}) {
+  try {
+    const r = await fetch(url, { credentials: 'include', ...opts });
+    if (r.status === 401) { window.location.href = '/login'; return null; }
+    return await r.json();
+  } catch { return null; }
+}
+
+// ── Transcriptions ────────────────────────────────────────────────────────────
+async function loadTranscriptions(append = false) {
+  if (!append) {
+    offset = 0; allTranscriptions = [];
+    document.getElementById('txn-loading').classList.remove('hidden');
+    document.getElementById('txn-list').classList.add('hidden');
+    document.getElementById('txn-empty').classList.add('hidden');
+  }
+  const data = await apiFetch('/api/transcriptions?limit=' + LIMIT + '&offset=' + offset);
+  document.getElementById('txn-loading').classList.add('hidden');
+  if (!data) return;
+  allTranscriptions = append ? [...allTranscriptions, ...data.transcriptions] : data.transcriptions;
+  offset += data.transcriptions.length;
+  document.getElementById('txn-load-more').classList.toggle('hidden', data.transcriptions.length < LIMIT);
+  renderTranscriptions();
+}
+
+function loadMore() { loadTranscriptions(true); }
+
+function getSource(row) {
+  if (row.telegram_id) return 'telegram';
+  if (row.from_number) return 'whatsapp';
+  return 'chrome';
+}
+
+function renderTranscriptions() {
+  const q = document.getElementById('txn-search').value.toLowerCase();
+  const src = document.getElementById('txn-source').value;
+  let rows = allTranscriptions;
+  if (q) rows = rows.filter(r => (r.transcription || '').toLowerCase().includes(q) || (r.summary || '').toLowerCase().includes(q));
+  if (src) rows = rows.filter(r => getSource(r) === src);
+
+  const list = document.getElementById('txn-list');
+  if (!rows.length) {
+    list.classList.add('hidden');
+    document.getElementById('txn-empty').classList.remove('hidden');
+    return;
+  }
+  document.getElementById('txn-empty').classList.add('hidden');
+  list.innerHTML = rows.map(r => {
+    const source = getSource(r);
+    const srcClass = 'source-' + source;
+    const srcLabel = source === 'telegram' ? '✈️ Telegram' : source === 'whatsapp' ? '💬 WhatsApp' : '🌐 Chrome';
+    const date = new Date(r.created_at).toLocaleDateString('es', { day:'2-digit', month:'short', year:'numeric' });
+    const time = new Date(r.created_at).toLocaleTimeString('es', { hour:'2-digit', minute:'2-digit' });
+    const dur = r.audio_duration_minutes ? (r.audio_duration_minutes * 60).toFixed(0) + 's' : '';
+    const preview = (r.transcription || '').slice(0, 200);
+    return `
+    <div class="card card-hover rounded-xl p-4" onclick="openPDF(${JSON.stringify(r).replace(/"/g, '&quot;')})">
+      <div class="flex items-center justify-between mb-2">
+        <div class="flex items-center gap-2">
+          <span class="source-badge ${srcClass}">${srcLabel}</span>
+          ${dur ? '<span class="text-xs text-gray-600">🎙️ ' + dur + '</span>' : ''}
+          ${r.language ? '<span class="text-xs text-gray-600">' + r.language + '</span>' : ''}
+        </div>
+        <span class="text-xs text-gray-600">${date} ${time}</span>
+      </div>
+      <p class="text-sm text-gray-300 leading-relaxed line-clamp-3">${preview}${(r.transcription||'').length > 200 ? '...' : ''}</p>
+      ${r.summary ? '<p class="text-xs text-gray-500 mt-2 line-clamp-2">📝 ' + r.summary.replace(/^\*\s*/gm,'').slice(0,150) + '</p>' : ''}
+    </div>`;
+  }).join('');
+  list.classList.remove('hidden');
+}
+
+function filterTranscriptions() { renderTranscriptions(); }
+
+// ── PDF / Detail Modal ────────────────────────────────────────────────────────
+function openPDF(row) {
+  currentPdfRow = row;
+  document.getElementById('pdf-text').textContent = row.transcription || '(sin transcripción)';
+  document.getElementById('pdf-summary').textContent = row.summary ? 'Resumen: ' + row.summary.replace(/^\*\s*/gm,'') : '';
+  document.getElementById('pdf-modal').classList.remove('hidden');
+}
+function closePDF() { document.getElementById('pdf-modal').classList.add('hidden'); }
+function copyText() {
+  if (!currentPdfRow) return;
+  navigator.clipboard.writeText(currentPdfRow.transcription || '').then(() => alert('Copiado ✓'));
+}
+function downloadTxt() {
+  if (!currentPdfRow) return;
+  const blob = new Blob([currentPdfRow.transcription || ''], { type: 'text/plain' });
+  const a = document.createElement('a'); a.href = URL.createObjectURL(blob);
+  a.download = 'transcripcion-' + new Date(currentPdfRow.created_at).toISOString().split('T')[0] + '.txt';
+  a.click();
+}
+
+// ── AI Search ─────────────────────────────────────────────────────────────────
+async function doSearch() {
+  const q = document.getElementById('search-input').value.trim();
+  const btn = document.getElementById('search-btn');
+  if (!q) return;
+  btn.textContent = 'Buscando...'; btn.disabled = true;
+  document.getElementById('search-loading').classList.remove('hidden');
+  document.getElementById('search-answer').classList.add('hidden');
+  document.getElementById('search-sources').classList.add('hidden');
+  document.getElementById('search-empty').classList.add('hidden');
+
+  const data = await apiFetch('/api/ai-search', {
+    method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify({ q }),
+  });
+  document.getElementById('search-loading').classList.add('hidden');
+  btn.textContent = 'Buscar'; btn.disabled = false;
+  if (!data) return;
+
+  if (data.sources && data.sources.length) {
+    document.getElementById('answer-text').textContent = data.answer;
+    document.getElementById('search-answer').classList.remove('hidden');
+    document.getElementById('sources-list').innerHTML = data.sources.map((s, i) =>
+      `<div class="card rounded-lg p-3 text-xs text-gray-400">
+        <span class="text-violet-400 font-semibold">[${i+1}]</span> ${new Date(s.created_at).toLocaleDateString('es')} — ${(s.text||'').slice(0,150)}...
+      </div>`
+    ).join('');
+    document.getElementById('search-sources').classList.remove('hidden');
+  } else {
+    document.getElementById('search-empty').classList.remove('hidden');
+  }
+}
+
+// ── Usage ─────────────────────────────────────────────────────────────────────
+function loadUsage() {
+  if (!user) return;
+  document.getElementById('plan-name').textContent = user.tier || 'Free';
+  const badge = document.getElementById('plan-badge-big');
+  badge.className = 'tier-badge tier-' + (user.tier || 'free') + ' text-sm px-3 py-1';
+  badge.textContent = (user.tier || 'free').toUpperCase();
+
+  const dailyPct = Math.min(100, (user.daily_notes_used / user.daily_notes_limit) * 100);
+  document.getElementById('daily-count').textContent = user.daily_notes_used + ' / ' + user.daily_notes_limit;
+  document.getElementById('daily-bar').style.width = dailyPct + '%';
+
+  const monthlyPct = Math.min(100, (user.monthly_notes_used / user.monthly_notes_limit) * 100);
+  document.getElementById('monthly-count').textContent = user.monthly_notes_used + ' / ' + user.monthly_notes_limit;
+  document.getElementById('monthly-bar').style.width = monthlyPct + '%';
+
+  const audioPct = Math.min(100, (user.audio_minutes_used / user.audio_minutes_limit) * 100);
+  document.getElementById('audio-count').textContent = user.audio_minutes_used.toFixed(1) + ' / ' + user.audio_minutes_limit + ' min';
+  document.getElementById('audio-bar').style.width = audioPct + '%';
+
+  if ((user.tier || 'free') === 'free' || dailyPct > 80 || monthlyPct > 80) {
+    document.getElementById('upgrade-cta').classList.remove('hidden');
+  }
+}
+
+// ── Navigation ────────────────────────────────────────────────────────────────
+function showSection(name) {
+  ['transcriptions','search','usage'].forEach(s => {
+    document.getElementById('section-' + s).classList.toggle('hidden', s !== name);
+    document.getElementById('nav-' + s).classList.toggle('active', s === name);
+  });
+  const titles = { transcriptions: 'Mis Transcripciones', search: 'Buscar con IA', usage: 'Mi Plan' };
+  document.getElementById('page-title').textContent = titles[name];
+  if (name === 'usage') loadUsage();
+}
+
+function toggleSidebar() {
+  document.getElementById('sidebar').classList.toggle('open');
+}
+
+async function logout() {
+  await fetch('/api/logout', { method: 'POST', credentials: 'include' });
+  window.location.href = '/login';
+}
+
+init();
+</script>
+</body>
+</html>

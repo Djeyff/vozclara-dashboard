@@ -1,0 +1,131 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>VozClara — Iniciar sesión</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<style>
+  body { background: #07011a; font-family: 'Inter', system-ui, sans-serif; }
+  .glow { box-shadow: 0 0 40px rgba(139,92,246,0.15); }
+  .gradient-text { background: linear-gradient(135deg, #a78bfa, #818cf8); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
+  .btn-primary { background: linear-gradient(135deg, #7c3aed, #4f46e5); transition: opacity 0.2s; }
+  .btn-primary:hover { opacity: 0.9; }
+  .input-field { background: rgba(255,255,255,0.05); border: 1px solid rgba(139,92,246,0.3); color: white; }
+  .input-field:focus { outline: none; border-color: #7c3aed; box-shadow: 0 0 0 2px rgba(124,58,237,0.2); }
+  .input-field::placeholder { color: rgba(255,255,255,0.3); }
+</style>
+</head>
+<body class="min-h-screen flex items-center justify-center px-4">
+
+<div class="w-full max-w-sm">
+  <!-- Logo -->
+  <div class="text-center mb-8">
+    <div class="inline-flex items-center gap-2 mb-4">
+      <div class="w-10 h-10 rounded-xl bg-violet-600 flex items-center justify-center text-xl">🎙️</div>
+      <span class="text-2xl font-bold text-white">VozClara</span>
+    </div>
+    <p class="text-gray-400 text-sm">Accede a tus transcripciones</p>
+  </div>
+
+  <!-- Card -->
+  <div class="bg-white/5 border border-white/10 rounded-2xl p-6 glow">
+
+    <!-- Step 1: Phone -->
+    <div id="step-phone">
+      <h2 class="text-white font-semibold text-lg mb-1">Tu número de WhatsApp</h2>
+      <p class="text-gray-400 text-sm mb-5">Te enviaremos un código de verificación</p>
+      <div class="space-y-4">
+        <div>
+          <label class="text-gray-400 text-xs mb-1 block">Número (con código de país)</label>
+          <input id="phone-input" type="tel" placeholder="18091234567"
+            class="input-field w-full rounded-xl px-4 py-3 text-sm" />
+        </div>
+        <button onclick="requestOTP()" id="btn-otp"
+          class="btn-primary w-full text-white font-semibold py-3 rounded-xl text-sm">
+          Enviar código
+        </button>
+      </div>
+      <p id="phone-error" class="text-red-400 text-xs mt-3 hidden"></p>
+    </div>
+
+    <!-- Step 2: OTP -->
+    <div id="step-otp" class="hidden">
+      <div class="flex items-center gap-2 mb-4">
+        <button onclick="backToPhone()" class="text-gray-400 hover:text-white text-sm">← Volver</button>
+      </div>
+      <h2 class="text-white font-semibold text-lg mb-1">Código de verificación</h2>
+      <p class="text-gray-400 text-sm mb-5">Revisa tu WhatsApp — enviamos un código de 6 dígitos a <span id="phone-display" class="text-violet-400"></span></p>
+      <div class="space-y-4">
+        <input id="otp-input" type="text" inputmode="numeric" maxlength="6" placeholder="123456"
+          class="input-field w-full rounded-xl px-4 py-3 text-sm text-center tracking-widest text-lg" />
+        <button onclick="verifyOTP()" id="btn-verify"
+          class="btn-primary w-full text-white font-semibold py-3 rounded-xl text-sm">
+          Verificar
+        </button>
+        <button onclick="requestOTP()" class="w-full text-gray-400 hover:text-white text-xs py-2">
+          Reenviar código
+        </button>
+      </div>
+      <p id="otp-error" class="text-red-400 text-xs mt-3 hidden"></p>
+    </div>
+
+  </div>
+
+  <p class="text-center text-gray-600 text-xs mt-6">
+    ¿No tienes cuenta? Activa VozClara en 
+    <a href="https://t.me/vozclara_bot" class="text-violet-400 hover:underline">Telegram</a> o 
+    <a href="https://voz-clara.com" class="text-violet-400 hover:underline">WhatsApp</a>
+  </p>
+</div>
+
+<script>
+let currentPhone = '';
+
+async function requestOTP() {
+  const phone = document.getElementById('phone-input').value.replace(/\D/g, '');
+  const btn = document.getElementById('btn-otp');
+  const err = document.getElementById('phone-error');
+  if (!phone || phone.length < 8) { showError(err, 'Ingresa un número válido con código de país'); return; }
+  btn.textContent = 'Enviando...'; btn.disabled = true;
+  err.classList.add('hidden');
+  try {
+    const r = await fetch('/api/request-otp', { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify({ phone }) });
+    const data = await r.json();
+    if (!r.ok) { showError(err, data.error || 'Error enviando código'); btn.textContent = 'Enviar código'; btn.disabled = false; return; }
+    currentPhone = phone;
+    document.getElementById('phone-display').textContent = '+' + phone;
+    document.getElementById('step-phone').classList.add('hidden');
+    document.getElementById('step-otp').classList.remove('hidden');
+    document.getElementById('otp-input').focus();
+  } catch (e) { showError(err, 'Error de conexión'); }
+  btn.textContent = 'Enviar código'; btn.disabled = false;
+}
+
+async function verifyOTP() {
+  const otp = document.getElementById('otp-input').value.trim();
+  const btn = document.getElementById('btn-verify');
+  const err = document.getElementById('otp-error');
+  if (!otp || otp.length !== 6) { showError(err, 'Ingresa el código de 6 dígitos'); return; }
+  btn.textContent = 'Verificando...'; btn.disabled = true;
+  err.classList.add('hidden');
+  try {
+    const r = await fetch('/api/verify-otp', { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify({ phone: currentPhone, otp }) });
+    const data = await r.json();
+    if (!r.ok) { showError(err, data.error || 'Código incorrecto'); btn.textContent = 'Verificar'; btn.disabled = false; return; }
+    window.location.href = '/app';
+  } catch (e) { showError(err, 'Error de conexión'); btn.textContent = 'Verificar'; btn.disabled = false; }
+}
+
+function backToPhone() {
+  document.getElementById('step-otp').classList.add('hidden');
+  document.getElementById('step-phone').classList.remove('hidden');
+}
+
+function showError(el, msg) { el.textContent = msg; el.classList.remove('hidden'); }
+
+document.getElementById('otp-input').addEventListener('keydown', e => { if (e.key === 'Enter') verifyOTP(); });
+document.getElementById('phone-input').addEventListener('keydown', e => { if (e.key === 'Enter') requestOTP(); });
+</script>
+</body>
+</html>

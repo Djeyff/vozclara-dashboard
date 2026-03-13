@@ -1,0 +1,12 @@
+{
+  "name": "vozclara-dashboard",
+  "version": "1.0.0",
+  "description": "VozClara user dashboard",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js"
+  },
+  "engines": {
+    "node": ">=18"
+  }
+}
