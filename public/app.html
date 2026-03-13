@@ -10,25 +10,33 @@
   .sidebar { background: rgba(255,255,255,0.03); border-right: 1px solid rgba(255,255,255,0.07); }
   .card { background: rgba(255,255,255,0.04); border: 1px solid rgba(255,255,255,0.08); }
   .card-hover:hover { background: rgba(255,255,255,0.06); cursor: pointer; }
-  .btn-primary { background: linear-gradient(135deg, #7c3aed, #4f46e5); }
+  .btn-primary { background: linear-gradient(135deg, #D97706, #F59E0B); }
   .btn-primary:hover { opacity: 0.9; }
-  .input-field { background: rgba(255,255,255,0.05); border: 1px solid rgba(139,92,246,0.3); color: white; }
-  .input-field:focus { outline: none; border-color: #7c3aed; }
+  .btn-secondary { background: rgba(255,255,255,0.08); border: 1px solid rgba(255,255,255,0.12); }
+  .btn-secondary:hover { background: rgba(255,255,255,0.12); }
+  .input-field { background: rgba(255,255,255,0.05); border: 1px solid rgba(245,158,11,0.3); color: white; }
+  .input-field:focus { outline: none; border-color: #F59E0B; box-shadow: 0 0 0 2px rgba(245,158,11,0.1); }
   .input-field::placeholder { color: rgba(255,255,255,0.25); }
-  .progress-bar { background: linear-gradient(90deg, #7c3aed, #818cf8); border-radius: 4px; transition: width 0.5s; }
+  .progress-bar { background: linear-gradient(90deg, #D97706, #F59E0B); border-radius: 4px; transition: width 0.5s; }
   .tier-badge { padding: 2px 10px; border-radius: 20px; font-size: 11px; font-weight: 600; }
   .tier-free { background: rgba(107,114,128,0.2); color: #9ca3af; }
   .tier-basic { background: rgba(59,130,246,0.2); color: #60a5fa; }
-  .tier-pro { background: rgba(139,92,246,0.2); color: #a78bfa; }
-  .tier-business { background: rgba(245,158,11,0.15); color: #fbbf24; }
+  .tier-pro { background: rgba(245,158,11,0.2); color: #FBBF24; }
+  .tier-business { background: rgba(245,158,11,0.25); color: #F59E0B; }
   .nav-item { padding: 10px 12px; border-radius: 8px; cursor: pointer; transition: background 0.15s; color: rgba(255,255,255,0.5); font-size: 14px; }
-  .nav-item:hover, .nav-item.active { background: rgba(124,58,237,0.15); color: white; }
-  .source-badge { font-size: 10px; padding: 2px 8px; border-radius: 10px; }
+  .nav-item:hover, .nav-item.active { background: rgba(245,158,11,0.12); color: white; }
+  .source-badge { font-size: 10px; padding: 2px 8px; border-radius: 10px; font-weight: 500; }
   .source-telegram { background: rgba(0,136,204,0.2); color: #38bdf8; }
   .source-whatsapp { background: rgba(37,211,102,0.2); color: #4ade80; }
-  .source-chrome { background: rgba(255,167,0,0.15); color: #fbbf24; }
-  .answer-card { background: linear-gradient(135deg, rgba(124,58,237,0.1), rgba(79,70,229,0.1)); border: 1px solid rgba(124,58,237,0.25); }
-  ::-webkit-scrollbar { width: 4px; } ::-webkit-scrollbar-track { background: transparent; } ::-webkit-scrollbar-thumb { background: rgba(124,58,237,0.4); border-radius: 4px; }
+  .source-chrome { background: rgba(245,158,11,0.15); color: #FBBF24; }
+  .answer-card { background: linear-gradient(135deg, rgba(245,158,11,0.08), rgba(217,119,6,0.06)); border: 1px solid rgba(245,158,11,0.2); }
+  .gold-text { background: linear-gradient(135deg, #F59E0B, #FBBF24); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
+  ::-webkit-scrollbar { width: 4px; } ::-webkit-scrollbar-track { background: transparent; } ::-webkit-scrollbar-thumb { background: rgba(245,158,11,0.3); border-radius: 4px; }
+
+  /* Bullet-point transcription */
+  .txn-bullets { list-style: none; padding: 0; margin: 0; }
+  .txn-bullets li { display: flex; gap: 8px; padding: 3px 0; line-height: 1.55; }
+  .txn-bullets li::before { content: '•'; color: #F59E0B; font-weight: bold; flex-shrink: 0; margin-top: 0; }
 
   /* Mobile sidebar overlay */
   #sidebar-overlay { display: none; }
@@ -36,7 +44,7 @@
   @media (max-width: 640px) {
     #sidebar {
       position: fixed; left: -240px; top: 0; height: 100vh; width: 240px;
-      z-index: 60; transition: left 0.25s ease; background: #0f0628;
+      z-index: 60; transition: left 0.25s ease; background: #0c0920;
     }
     #sidebar.open { left: 0; }
   }
@@ -50,25 +58,19 @@
 <div class="flex h-screen overflow-hidden">
 
   <!-- Sidebar -->
-  <div id="sidebar" class="sidebar flex flex-col w-52 sm:w-52 flex-shrink-0 p-4 overflow-y-auto">
+  <div id="sidebar" class="sidebar flex flex-col w-52 flex-shrink-0 p-4 overflow-y-auto">
     <div class="flex items-center justify-between mb-6 px-1">
       <div class="flex items-center gap-2">
-        <div class="w-8 h-8 rounded-lg bg-violet-600 flex items-center justify-center text-base">🎙️</div>
-        <span class="font-bold text-white">VozClara</span>
+        <div class="w-8 h-8 rounded-lg flex items-center justify-center text-sm font-bold" style="background:linear-gradient(135deg,#D97706,#F59E0B)">🎙️</div>
+        <span class="font-bold gold-text">VozClara</span>
       </div>
-      <button class="sm:hidden text-gray-500 hover:text-white text-lg leading-none" onclick="closeSidebar()">✕</button>
+      <button class="sm:hidden text-gray-500 hover:text-white text-lg" onclick="closeSidebar()">✕</button>
     </div>
 
     <nav class="flex-1 space-y-1">
-      <div class="nav-item active" onclick="showSection('transcriptions')" id="nav-transcriptions">
-        🎙️ Transcripciones
-      </div>
-      <div class="nav-item" onclick="showSection('search')" id="nav-search">
-        🔍 Buscar con IA
-      </div>
-      <div class="nav-item" onclick="showSection('usage')" id="nav-usage">
-        📊 Mi plan
-      </div>
+      <div class="nav-item active" onclick="showSection('transcriptions')" id="nav-transcriptions">🎙️ Transcripciones</div>
+      <div class="nav-item" onclick="showSection('search')" id="nav-search">🔍 Buscar con IA</div>
+      <div class="nav-item" onclick="showSection('usage')" id="nav-usage">📊 Mi plan</div>
     </nav>
 
     <div class="mt-auto pt-4 border-t border-white/10">
@@ -77,7 +79,7 @@
         <div id="sidebar-name" class="text-sm text-white font-medium truncate">—</div>
         <div id="sidebar-tier-badge" class="tier-badge tier-free mt-1 inline-block">free</div>
       </div>
-      <div class="nav-item text-red-400 hover:text-red-300" onclick="logout()">← Cerrar sesión</div>
+      <div class="nav-item text-red-400 hover:text-red-300 text-sm" onclick="logout()">← Cerrar sesión</div>
     </div>
   </div>
 
@@ -86,11 +88,11 @@
 
     <!-- Top bar -->
     <div class="flex items-center gap-3 px-3 sm:px-5 py-3 border-b border-white/8 flex-shrink-0">
-      <button class="sm:hidden text-gray-400 hover:text-white text-xl w-8 h-8 flex items-center justify-center" onclick="openSidebar()">☰</button>
+      <button class="sm:hidden text-gray-400 hover:text-white text-xl w-8 h-8 flex items-center justify-center flex-shrink-0" onclick="openSidebar()">☰</button>
       <div class="flex-1 min-w-0">
         <h1 id="page-title" class="font-semibold text-sm sm:text-base text-white truncate">Mis Transcripciones</h1>
       </div>
-      <div id="user-greeting" class="text-xs sm:text-sm text-gray-400 hidden sm:block truncate max-w-32">—</div>
+      <div id="user-greeting" class="text-xs text-gray-500 hidden sm:block truncate max-w-32">—</div>
     </div>
 
     <!-- Content -->
@@ -98,8 +100,7 @@
 
       <!-- ── Transcriptions ── -->
       <div id="section-transcriptions">
-        <!-- Filters: stack on mobile, row on desktop -->
-        <div class="flex flex-col sm:flex-row gap-2 sm:gap-3 mb-4">
+        <div class="flex flex-col sm:flex-row gap-2 mb-4">
           <input id="txn-search" type="text" placeholder="Filtrar transcripciones..."
             class="input-field w-full rounded-xl px-4 py-2.5 text-sm"
             oninput="filterTranscriptions()" />
@@ -111,15 +112,14 @@
             <option value="chrome">Chrome</option>
           </select>
         </div>
-
         <div id="txn-loading" class="text-center py-12 text-gray-500 text-sm">Cargando...</div>
         <div id="txn-list" class="space-y-3 hidden"></div>
         <div id="txn-empty" class="hidden text-center py-12 text-gray-500 text-sm">
           No hay transcripciones aún.<br>
-          <span class="text-xs">Envía una nota de voz al bot de Telegram o WhatsApp para comenzar.</span>
+          <span class="text-xs">Envía una nota de voz al bot de Telegram o WhatsApp.</span>
         </div>
         <div id="txn-load-more" class="hidden text-center mt-4">
-          <button onclick="loadMore()" class="text-violet-400 hover:text-violet-300 text-sm py-2 px-6">Cargar más</button>
+          <button onclick="loadMore()" class="text-amber-400 hover:text-amber-300 text-sm py-2 px-6">Cargar más</button>
         </div>
       </div>
 
@@ -127,8 +127,7 @@
       <div id="section-search" class="hidden">
         <div class="max-w-2xl">
           <p class="text-gray-400 text-sm mb-4">Pregunta algo sobre tus notas de voz. Busco en todos los idiomas.</p>
-          <!-- Stack on mobile -->
-          <div class="flex flex-col sm:flex-row gap-2 sm:gap-3 mb-4">
+          <div class="flex flex-col sm:flex-row gap-2 mb-4">
             <input id="search-input" type="text" placeholder="¿Qué dijiste sobre el proyecto?"
               class="input-field flex-1 rounded-xl px-4 py-3 text-sm" onkeydown="if(event.key==='Enter')doSearch()" />
             <button onclick="doSearch()" id="search-btn"
@@ -138,7 +137,7 @@
           </div>
           <div id="search-loading" class="hidden text-center py-8 text-gray-500 text-sm">🔍 Buscando...</div>
           <div id="search-answer" class="hidden answer-card rounded-xl p-4 mb-4">
-            <div class="text-xs text-violet-400 mb-2 font-semibold">Respuesta IA</div>
+            <div class="text-xs text-amber-400 mb-2 font-semibold">Respuesta IA</div>
             <div id="answer-text" class="text-sm text-gray-200 leading-relaxed"></div>
           </div>
           <div id="search-sources" class="hidden space-y-2">
@@ -151,55 +150,40 @@
 
       <!-- ── Usage / Plan ── -->
       <div id="section-usage" class="hidden">
-        <div class="max-w-xl space-y-3 sm:space-y-4">
-          <!-- Plan card -->
+        <div class="max-w-xl space-y-3">
           <div class="card rounded-2xl p-4 sm:p-5">
-            <div class="flex items-center justify-between mb-2">
+            <div class="flex items-center justify-between">
               <div>
                 <div class="text-xs text-gray-500 mb-1">Tu plan actual</div>
-                <div id="plan-name" class="text-lg sm:text-xl font-bold text-white capitalize">—</div>
+                <div id="plan-name" class="text-lg font-bold text-white capitalize">—</div>
               </div>
-              <div id="plan-badge-big" class="tier-badge tier-free text-sm px-3 py-1">—</div>
+              <div id="plan-badge-big" class="tier-badge tier-free px-3 py-1">—</div>
             </div>
           </div>
-
-          <!-- Daily notes -->
           <div class="card rounded-2xl p-4 sm:p-5">
             <div class="flex justify-between text-sm mb-2">
               <span class="text-gray-400">Notas hoy</span>
               <span id="daily-count" class="text-white font-medium">—</span>
             </div>
-            <div class="bg-white/10 rounded-full h-2">
-              <div id="daily-bar" class="progress-bar h-2" style="width:0%"></div>
-            </div>
+            <div class="bg-white/10 rounded-full h-1.5"><div id="daily-bar" class="progress-bar h-1.5" style="width:0%"></div></div>
           </div>
-
-          <!-- Monthly notes -->
           <div class="card rounded-2xl p-4 sm:p-5">
             <div class="flex justify-between text-sm mb-2">
               <span class="text-gray-400">Notas este mes</span>
               <span id="monthly-count" class="text-white font-medium">—</span>
             </div>
-            <div class="bg-white/10 rounded-full h-2">
-              <div id="monthly-bar" class="progress-bar h-2" style="width:0%"></div>
-            </div>
+            <div class="bg-white/10 rounded-full h-1.5"><div id="monthly-bar" class="progress-bar h-1.5" style="width:0%"></div></div>
           </div>
-
-          <!-- Audio minutes -->
           <div class="card rounded-2xl p-4 sm:p-5">
             <div class="flex justify-between text-sm mb-2">
               <span class="text-gray-400">Minutos de audio este mes</span>
               <span id="audio-count" class="text-white font-medium">—</span>
             </div>
-            <div class="bg-white/10 rounded-full h-2">
-              <div id="audio-bar" class="progress-bar h-2" style="width:0%"></div>
-            </div>
+            <div class="bg-white/10 rounded-full h-1.5"><div id="audio-bar" class="progress-bar h-1.5" style="width:0%"></div></div>
           </div>
-
-          <!-- Upgrade CTA -->
-          <div id="upgrade-cta" class="card rounded-2xl p-4 sm:p-5 border-violet-500/30 hidden">
+          <div id="upgrade-cta" class="card rounded-2xl p-4 sm:p-5 hidden" style="border-color:rgba(245,158,11,0.25)">
             <div class="text-sm font-semibold text-white mb-1">Mejora tu plan</div>
-            <div class="text-xs text-gray-400 mb-3">Obtén más notas, minutos y funciones avanzadas.</div>
+            <div class="text-xs text-gray-400 mb-3">Más notas, minutos y funciones avanzadas.</div>
             <a href="https://voz-clara.com/#pricing" target="_blank"
               class="btn-primary inline-block text-white text-sm font-semibold px-4 py-2 rounded-xl">
               Ver planes →
@@ -212,18 +196,34 @@
   </div>
 </div>
 
-<!-- Detail Modal — full screen on mobile -->
-<div id="pdf-modal" class="hidden fixed inset-0 bg-black/70 flex items-end sm:items-center justify-center z-50 p-0 sm:p-4">
-  <div class="bg-[#0f0628] border border-white/10 rounded-t-2xl sm:rounded-2xl p-4 sm:p-6 w-full sm:max-w-lg max-h-[85vh] sm:max-h-[80vh] overflow-y-auto">
-    <div class="flex items-center justify-between mb-4">
-      <h3 class="font-semibold text-white text-sm sm:text-base">Transcripción completa</h3>
-      <button onclick="closePDF()" class="text-gray-400 hover:text-white text-xl w-8 h-8 flex items-center justify-center">✕</button>
+<!-- Detail Modal — bottom sheet on mobile -->
+<div id="pdf-modal" class="hidden fixed inset-0 bg-black/75 flex items-end sm:items-center justify-center z-50 p-0 sm:p-4">
+  <div class="bg-[#0c0920] border border-white/10 rounded-t-2xl sm:rounded-2xl w-full sm:max-w-lg flex flex-col" style="max-height:88vh">
+    <!-- Header — fixed -->
+    <div class="flex items-center justify-between px-4 sm:px-5 py-4 border-b border-white/10 flex-shrink-0">
+      <div class="flex items-center gap-2 min-w-0">
+        <div id="modal-source-badge" class="source-badge source-telegram flex-shrink-0">Telegram</div>
+        <div id="modal-meta" class="text-xs text-gray-500 truncate">—</div>
+      </div>
+      <button onclick="closePDF()" class="text-gray-400 hover:text-white text-xl w-8 h-8 flex items-center justify-center flex-shrink-0 ml-2">✕</button>
     </div>
-    <div id="pdf-text" class="text-sm text-gray-300 leading-relaxed whitespace-pre-wrap mb-4"></div>
-    <div id="pdf-summary" class="text-xs text-gray-500 border-t border-white/10 pt-3 mt-3"></div>
-    <div class="flex gap-2 mt-4 flex-wrap">
-      <button onclick="copyText()" class="text-xs bg-white/10 hover:bg-white/15 text-white px-4 py-2.5 rounded-lg">📋 Copiar</button>
-      <button onclick="downloadTxt()" class="text-xs bg-white/10 hover:bg-white/15 text-white px-4 py-2.5 rounded-lg">⬇️ Descargar .txt</button>
+    <!-- Scrollable body -->
+    <div class="flex-1 overflow-y-auto px-4 sm:px-5 py-4">
+      <!-- Transcription as bullet points -->
+      <div class="mb-4">
+        <div class="text-xs text-amber-400 font-semibold mb-3 uppercase tracking-wide">Transcripción</div>
+        <ul id="pdf-bullets" class="txn-bullets text-sm text-gray-200"></ul>
+      </div>
+      <!-- Summary -->
+      <div id="pdf-summary-block" class="hidden border-t border-white/8 pt-3 mt-2">
+        <div class="text-xs text-gray-500 font-semibold mb-1 uppercase tracking-wide">Resumen</div>
+        <p id="pdf-summary" class="text-xs text-gray-400 leading-relaxed"></p>
+      </div>
+    </div>
+    <!-- Actions — fixed footer -->
+    <div class="flex gap-2 px-4 sm:px-5 py-4 border-t border-white/10 flex-shrink-0">
+      <button onclick="copyText()" class="btn-secondary flex-1 text-xs text-white px-3 py-2.5 rounded-xl">📋 Copiar</button>
+      <button onclick="downloadTxt()" class="btn-secondary flex-1 text-xs text-white px-3 py-2.5 rounded-xl">⬇️ Descargar .txt</button>
     </div>
   </div>
 </div>
@@ -241,7 +241,7 @@ async function init() {
   if (!me) { window.location.href = '/login'; return; }
   user = me;
   document.getElementById('sidebar-name').textContent = me.display_name;
-  document.getElementById('user-greeting').textContent = 'Hola, ' + me.display_name;
+  document.getElementById('user-greeting').textContent = me.display_name;
   const tierClass = 'tier-' + (me.tier || 'free');
   document.getElementById('sidebar-tier-badge').className = 'tier-badge ' + tierClass;
   document.getElementById('sidebar-tier-badge').textContent = (me.tier || 'free').toUpperCase();
@@ -256,7 +256,7 @@ async function apiFetch(url, opts = {}) {
   } catch { return null; }
 }
 
-// ── Sidebar (mobile) ──────────────────────────────────────────────────────────
+// ── Sidebar ───────────────────────────────────────────────────────────────────
 function openSidebar() {
   document.getElementById('sidebar').classList.add('open');
   document.getElementById('sidebar-overlay').classList.add('open');
@@ -264,6 +264,15 @@ function openSidebar() {
 function closeSidebar() {
   document.getElementById('sidebar').classList.remove('open');
   document.getElementById('sidebar-overlay').classList.remove('open');
+}
+
+// ── Format transcription as bullet points ─────────────────────────────────────
+function formatBullets(text) {
+  if (!text) return [];
+  // Split by sentence endings, keeping punctuation
+  const raw = text.trim().replace(/\s+/g, ' ');
+  const sentences = raw.match(/[^.!?]+[.!?]+/g) || [raw];
+  return sentences.map(s => s.trim()).filter(s => s.length > 2);
 }
 
 // ── Transcriptions ────────────────────────────────────────────────────────────
@@ -312,20 +321,20 @@ function renderTranscriptions() {
     const date = new Date(r.created_at).toLocaleDateString('es', { day:'2-digit', month:'short' });
     const time = new Date(r.created_at).toLocaleTimeString('es', { hour:'2-digit', minute:'2-digit' });
     const dur = r.audio_duration_minutes ? (r.audio_duration_minutes * 60).toFixed(0) + 's' : '';
-    const preview = (r.transcription || '').slice(0, 180);
+    const preview = (r.transcription || '').slice(0, 140);
     const rowJson = JSON.stringify(r).replace(/"/g, '&quot;');
     return `
-    <div class="card card-hover rounded-xl p-3 sm:p-4 active:bg-white/10" onclick="openPDF(${rowJson})">
-      <div class="flex items-center justify-between mb-2 gap-2">
-        <div class="flex items-center gap-1.5 flex-wrap min-w-0">
-          <span class="source-badge ${srcClass} flex-shrink-0">${srcLabel}</span>
-          ${dur ? '<span class="text-xs text-gray-600 flex-shrink-0">🎙️ ' + dur + '</span>' : ''}
-          ${r.language ? '<span class="text-xs text-gray-600 flex-shrink-0">' + r.language + '</span>' : ''}
+    <div class="card card-hover rounded-xl p-3 sm:p-4 transition-colors" onclick="openPDF(${rowJson})">
+      <div class="flex items-center justify-between mb-2 gap-2 flex-wrap">
+        <div class="flex items-center gap-1.5 flex-wrap">
+          <span class="source-badge ${srcClass}">${srcLabel}</span>
+          ${dur ? '<span class="text-xs text-gray-600">🎙️ ' + dur + '</span>' : ''}
+          ${r.language ? '<span class="text-xs text-gray-600">' + r.language + '</span>' : ''}
         </div>
         <span class="text-xs text-gray-600 flex-shrink-0">${date} ${time}</span>
       </div>
-      <p class="text-sm text-gray-300 leading-relaxed line-clamp-3">${preview}${(r.transcription||'').length > 180 ? '...' : ''}</p>
-      ${r.summary ? '<p class="text-xs text-gray-500 mt-2 line-clamp-2">📝 ' + r.summary.replace(/^\*\s*/gm,'').slice(0,120) + '</p>' : ''}
+      <p class="text-sm text-gray-300 leading-relaxed line-clamp-3">${preview}${(r.transcription||'').length > 140 ? '...' : ''}</p>
+      ${r.summary ? '<p class="text-xs text-gray-500 mt-2 line-clamp-2 border-t border-white/5 pt-2">📝 ' + r.summary.replace(/^\*\s*/gm,'').slice(0,100) + '...</p>' : ''}
     </div>`;
   }).join('');
   list.classList.remove('hidden');
@@ -336,20 +345,65 @@ function filterTranscriptions() { renderTranscriptions(); }
 // ── Detail Modal ──────────────────────────────────────────────────────────────
 function openPDF(row) {
   currentPdfRow = row;
-  document.getElementById('pdf-text').textContent = row.transcription || '(sin transcripción)';
-  document.getElementById('pdf-summary').textContent = row.summary ? 'Resumen: ' + row.summary.replace(/^\*\s*/gm,'') : '';
+  const source = getSource(row);
+  const srcClass = 'source-' + source;
+  const srcLabel = source === 'telegram' ? '✈️ Telegram' : source === 'whatsapp' ? '💬 WhatsApp' : '🌐 Chrome';
+  const date = new Date(row.created_at).toLocaleDateString('es', { day:'2-digit', month:'short', year:'numeric' });
+  const time = new Date(row.created_at).toLocaleTimeString('es', { hour:'2-digit', minute:'2-digit' });
+  const dur = row.audio_duration_minutes ? ' · 🎙️ ' + (row.audio_duration_minutes * 60).toFixed(0) + 's' : '';
+
+  // Source badge
+  const badge = document.getElementById('modal-source-badge');
+  badge.className = 'source-badge ' + srcClass;
+  badge.textContent = srcLabel;
+  document.getElementById('modal-meta').textContent = date + ' ' + time + dur;
+
+  // Bullet points
+  const bullets = formatBullets(row.transcription);
+  const ul = document.getElementById('pdf-bullets');
+  if (bullets.length > 0) {
+    ul.innerHTML = bullets.map(s => '<li><span>' + escHtml(s) + '</span></li>').join('');
+  } else {
+    ul.innerHTML = '<li><span class="text-gray-500">(sin transcripción)</span></li>';
+  }
+
+  // Summary
+  const summaryBlock = document.getElementById('pdf-summary-block');
+  const summaryEl = document.getElementById('pdf-summary');
+  if (row.summary) {
+    summaryEl.textContent = row.summary.replace(/^\*\s*/gm, '');
+    summaryBlock.classList.remove('hidden');
+  } else {
+    summaryBlock.classList.add('hidden');
+  }
+
   document.getElementById('pdf-modal').classList.remove('hidden');
+  document.body.style.overflow = 'hidden';
 }
-function closePDF() { document.getElementById('pdf-modal').classList.add('hidden'); }
+
+function closePDF() {
+  document.getElementById('pdf-modal').classList.add('hidden');
+  document.body.style.overflow = '';
+}
+
+function escHtml(s) {
+  return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+}
+
 function copyText() {
   if (!currentPdfRow) return;
-  navigator.clipboard.writeText(currentPdfRow.transcription || '').then(() => alert('Copiado ✓'));
+  navigator.clipboard.writeText(currentPdfRow.transcription || '').then(() => {
+    const btn = event.target;
+    btn.textContent = '✓ Copiado';
+    setTimeout(() => btn.textContent = '📋 Copiar', 2000);
+  });
 }
+
 function downloadTxt() {
   if (!currentPdfRow) return;
   const blob = new Blob([currentPdfRow.transcription || ''], { type: 'text/plain' });
   const a = document.createElement('a'); a.href = URL.createObjectURL(blob);
-  a.download = 'transcripcion-' + new Date(currentPdfRow.created_at).toISOString().split('T')[0] + '.txt';
+  a.download = 'vozclara-' + new Date(currentPdfRow.created_at).toISOString().split('T')[0] + '.txt';
   a.click();
 }
 
@@ -375,9 +429,8 @@ async function doSearch() {
     document.getElementById('answer-text').textContent = data.answer;
     document.getElementById('search-answer').classList.remove('hidden');
     document.getElementById('sources-list').innerHTML = data.sources.map((s, i) =>
-      `<div class="card rounded-lg p-3 text-xs text-gray-400">
-        <span class="text-violet-400 font-semibold">[${i+1}]</span> ${new Date(s.created_at).toLocaleDateString('es')} — ${(s.text||'').slice(0,120)}...
-      </div>`
+      '<div class="card rounded-lg p-3 text-xs text-gray-400 mb-2"><span class="text-amber-400 font-semibold">[' + (i+1) + ']</span> ' +
+      new Date(s.created_at).toLocaleDateString('es') + ' — ' + (s.text||'').slice(0,120) + '...</div>'
     ).join('');
     document.getElementById('search-sources').classList.remove('hidden');
   } else {
@@ -390,7 +443,7 @@ function loadUsage() {
   if (!user) return;
   document.getElementById('plan-name').textContent = user.tier || 'Free';
   const badge = document.getElementById('plan-badge-big');
-  badge.className = 'tier-badge tier-' + (user.tier || 'free') + ' text-sm px-3 py-1';
+  badge.className = 'tier-badge tier-' + (user.tier || 'free') + ' px-3 py-1';
   badge.textContent = (user.tier || 'free').toUpperCase();
 
   const dailyPct = Math.min(100, (user.daily_notes_used / user.daily_notes_limit) * 100);
@@ -402,7 +455,7 @@ function loadUsage() {
   document.getElementById('monthly-bar').style.width = monthlyPct + '%';
 
   const audioPct = Math.min(100, (user.audio_minutes_used / user.audio_minutes_limit) * 100);
-  document.getElementById('audio-count').textContent = user.audio_minutes_used.toFixed(1) + ' / ' + user.audio_minutes_limit + ' min';
+  document.getElementById('audio-count').textContent = (user.audio_minutes_used||0).toFixed(1) + ' / ' + user.audio_minutes_limit + ' min';
   document.getElementById('audio-bar').style.width = audioPct + '%';
 
   if ((user.tier || 'free') === 'free' || dailyPct > 80 || monthlyPct > 80) {
@@ -426,6 +479,11 @@ async function logout() {
   await fetch('/api/logout', { method: 'POST', credentials: 'include' });
   window.location.href = '/login';
 }
+
+// Close modal on backdrop click
+document.getElementById('pdf-modal').addEventListener('click', function(e) {
+  if (e.target === this) closePDF();
+});
 
 init();
 </script>
