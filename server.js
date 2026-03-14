@@ -363,7 +363,7 @@ const server = http.createServer(async (req, res) => {
 
     // Fetch from both tables in parallel
     const [r1, r2] = await Promise.all([
-      supaFetch(`/rest/v1/vozclara_transcriptions?user_id=eq.${user.id}&select=id,transcription,summary,language,audio_duration_minutes,duration_seconds,from_number,telegram_id,created_at&order=created_at.desc&limit=200`),
+      supaFetch(`/rest/v1/vozclara_transcriptions?user_id=eq.${user.id}&select=id,transcription,summary,language,audio_duration_minutes,duration_seconds,from_number,telegram_id,sender_name,chat_name,created_at&order=created_at.desc&limit=200`),
       supaFetch(`/rest/v1/transcriptions?user_id=eq.${user.id}&select=id,text,summary,language,duration_seconds,source,sender_name,chat_name,created_at&order=created_at.desc&limit=200`),
     ]);
 
@@ -379,6 +379,8 @@ const server = http.createServer(async (req, res) => {
         duration_seconds: r.duration_seconds,
         from_number: r.from_number,
         telegram_id: r.telegram_id,
+        sender_name: r.sender_name || null,
+        chat_name: r.chat_name || null,
         created_at: r.created_at,
       }));
 

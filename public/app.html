@@ -426,6 +426,7 @@ function renderTranscriptions() {
         <div class="flex items-center justify-between mb-2 gap-2 flex-wrap">
           <div class="flex items-center gap-1.5 flex-wrap">
             <span class="source-badge ${srcClass}">${srcLabel}</span>
+            ${r.sender_name ? '<span class="text-xs text-gray-400 font-medium">👤 ' + escHtml(r.sender_name) + '</span>' : (r.chat_name ? '<span class="text-xs text-gray-500">👥 ' + escHtml(r.chat_name) + '</span>' : '')}
             ${dur ? '<span class="text-xs text-gray-600">🎙️ ' + dur + '</span>' : ''}
             ${r.language ? '<span class="text-xs text-gray-600">' + r.language + '</span>' : ''}
           </div>
