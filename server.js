@@ -489,6 +489,159 @@ const server = http.createServer(async (req, res) => {
     return;
   }
 
+  // ═══════════════════════════════════════════════════════════
+  // PADDLE BILLING
+  // ═══════════════════════════════════════════════════════════
+
+  // ── Paddle: Webhook ──────────────────────────────────────
+  if (pathname === '/api/paddle/webhook' && req.method === 'POST') {
+    const PADDLE_WEBHOOK_SECRET = process.env.PADDLE_WEBHOOK_SECRET || '';
+
+    // Collect raw body for signature verification
+    let rawBody = '';
+    await new Promise((resolve, reject) => {
+      req.on('data', chunk => rawBody += chunk.toString());
+      req.on('end', resolve);
+      req.on('error', reject);
+    });
+
+    // Verify Paddle HMAC-SHA256 signature
+    const sigHeader = req.headers['paddle-signature'] || '';
+    const tsMatch  = sigHeader.match(/ts=(\d+)/);
+    const h1Match  = sigHeader.match(/h1=([a-f0-9]+)/);
+    if (!tsMatch || !h1Match) { res.writeHead(400); res.end('Missing signature'); return; }
+
+    const signedPayload = `${tsMatch[1]}:${rawBody}`;
+    const expected = crypto.createHmac('sha256', PADDLE_WEBHOOK_SECRET)
+      .update(signedPayload).digest('hex');
+
+    if (!crypto.timingSafeEqual(Buffer.from(expected), Buffer.from(h1Match[1]))) {
+      console.warn('[Paddle] Invalid webhook signature');
+      res.writeHead(403); res.end('Invalid signature'); return;
+    }
+
+    let event;
+    try { event = JSON.parse(rawBody); } catch(e) { res.writeHead(400); res.end('Bad JSON'); return; }
+
+    const eventType = event.event_type || '';
+    const data      = event.data || {};
+    const customData = data.custom_data || {};
+    const paddleCustomerId = data.customer_id || data.customer?.id || '';
+
+    // Map Paddle price IDs → VozClara tiers
+    const PRICE_TO_TIER = {
+      [process.env.PADDLE_PRICE_BASIC]:    'basic',
+      [process.env.PADDLE_PRICE_PRO]:      'pro',
+      [process.env.PADDLE_PRICE_BUSINESS]: 'business',
+    };
+
+    const priceId  = data.items?.[0]?.price?.id || data.items?.[0]?.price_id || '';
+    const newTier  = PRICE_TO_TIER[priceId] || null;
+    const app      = customData.app || 'vozclara';
+
+    try {
+      switch (eventType) {
+        case 'subscription.created':
+        case 'subscription.updated': {
+          if (!newTier || !paddleCustomerId) break;
+          const field = app === 'retena' ? 'rt_tier' : 'vc_tier';
+          await supaFetch(`/rest/v1/users?paddle_customer_id=eq.${paddleCustomerId}`, 'PATCH',
+            { [field]: newTier });
+          console.log(`[Paddle] ${eventType}: ${paddleCustomerId} → ${field}=${newTier}`);
+          break;
+        }
+        case 'subscription.canceled': {
+          if (!paddleCustomerId) break;
+          const field = app === 'retena' ? 'rt_tier' : 'vc_tier';
+          const fallback = app === 'retena' ? 'none' : 'free';
+          await supaFetch(`/rest/v1/users?paddle_customer_id=eq.${paddleCustomerId}`, 'PATCH',
+            { [field]: fallback });
+          console.log(`[Paddle] subscription.canceled: ${paddleCustomerId} → ${field}=${fallback}`);
+          break;
+        }
+        case 'transaction.completed': {
+          // Log invoice
+          const txId      = data.id || '';
+          const amountCents = Math.round((parseFloat(data.details?.totals?.total || 0)) * 100);
+          const currency  = data.currency_code || 'USD';
+          // Look up user by paddle_customer_id
+          const ur = await supaFetch(`/rest/v1/users?paddle_customer_id=eq.${paddleCustomerId}&select=id`);
+          const userId = ur.body?.[0]?.id || null;
+          if (txId) {
+            await supaFetch('/rest/v1/invoices', 'POST', {
+              user_id: userId,
+              paddle_customer_id: paddleCustomerId,
+              paddle_tx_id: txId,
+              amount_cents: amountCents,
+              currency,
+              tier: newTier,
+              app,
+              status: 'completed',
+            });
+          }
+          console.log(`[Paddle] transaction.completed: ${txId} ${currency} ${amountCents / 100}`);
+          break;
+        }
+        default:
+          console.log(`[Paddle] Unhandled event: ${eventType}`);
+      }
+    } catch (e) {
+      console.error('[Paddle] Handler error:', e.message);
+    }
+
+    // Always 200 — Paddle retries on non-2xx
+    sendJson(res, 200, { received: true });
+    return;
+  }
+
+  // ── Paddle: Customer Portal ───────────────────────────────
+  if (pathname === '/api/paddle/portal' && req.method === 'GET') {
+    const PADDLE_API_KEY = process.env.PADDLE_API_KEY || '';
+    const PADDLE_ENV     = process.env.PADDLE_ENV || 'sandbox';
+    const paddleBase     = PADDLE_ENV === 'production'
+      ? 'https://api.paddle.com'
+      : 'https://sandbox-api.paddle.com';
+
+    if (!user) { sendJson(res, 401, { error: 'Not authenticated' }); return; }
+    if (!user.paddle_customer_id) {
+      sendJson(res, 400, { error: 'No billing account linked' }); return;
+    }
+
+    try {
+      const portalRes = await new Promise((resolve, reject) => {
+        const body = JSON.stringify({ customer_id: user.paddle_customer_id });
+        const opts = {
+          hostname: paddleBase.replace('https://', ''),
+          path: '/customers/portal-sessions',
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${PADDLE_API_KEY}`,
+            'Content-Type': 'application/json',
+            'Content-Length': Buffer.byteLength(body),
+          },
+        };
+        const r = https.request(opts, res => {
+          let d = '';
+          res.on('data', c => d += c);
+          res.on('end', () => resolve({ status: res.statusCode, body: JSON.parse(d) }));
+        });
+        r.on('error', reject);
+        r.write(body);
+        r.end();
+      });
+      if (portalRes.status === 201 || portalRes.status === 200) {
+        const url = portalRes.body?.data?.urls?.general?.overview || '';
+        sendJson(res, 200, { url });
+      } else {
+        console.error('[Paddle] Portal error:', portalRes.body);
+        sendJson(res, 502, { error: 'Could not generate portal session' });
+      }
+    } catch (e) {
+      sendJson(res, 500, { error: e.message });
+    }
+    return;
+  }
+
   // ── API: Logout ──
   if (pathname === '/api/logout' && req.method === 'POST') {
     if (sessionToken) {
