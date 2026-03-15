@@ -1,4 +1,6 @@
 {
+  "buildCommand": "mkdir -p dist && cp -r app public index.html dist/",
+  "outputDirectory": "dist",
   "redirects": [
     { "source": "/", "destination": "/app/", "permanent": false }
   ],
