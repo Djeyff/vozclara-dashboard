@@ -1,0 +1,106 @@
+<!DOCTYPE html>
+<html lang="en" class="bg-gray-950">
+<head>
+  <meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>VozClara — AI Search</title>
+  <link rel="icon" href="/public/favicon.svg">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>tailwind.config={theme:{extend:{fontFamily:{sans:['Inter','sans-serif']}}}}</script>
+  <style>body{font-family:'Inter',sans-serif}::-webkit-scrollbar{width:6px}::-webkit-scrollbar-track{background:#030712}::-webkit-scrollbar-thumb{background:#374151;border-radius:3px}</style>
+</head>
+<body class="bg-gray-950 text-white min-h-screen flex">
+  <aside id="sidebar" class="hidden md:flex md:flex-col w-56 bg-gray-900 border-r border-gray-700 h-screen sticky top-0 shrink-0"></aside>
+
+  <main class="flex-1 min-w-0 pb-16 md:pb-0">
+    <div class="max-w-2xl mx-auto px-4 sm:px-6 py-8">
+      <h1 class="text-2xl font-bold mb-1">AI Search</h1>
+      <p class="text-sm text-gray-400 mb-6">Search across all your voice notes in any language</p>
+
+      <form id="search-form" class="mb-6">
+        <div class="relative">
+          <input type="text" id="q" placeholder="What did I talk about last week?" class="w-full bg-gray-800 border border-gray-700 rounded-xl px-4 py-3 text-white placeholder-gray-500 focus:outline-none focus:border-[#6366f1] text-sm pr-12" autofocus>
+          <button type="submit" class="absolute right-2 top-1/2 -translate-y-1/2 bg-[#6366f1] hover:bg-[#6366f1]/80 text-white p-2 rounded-lg transition-colors">
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/></svg>
+          </button>
+        </div>
+      </form>
+
+      <div id="results">
+        <div class="text-center py-12">
+          <p class="text-gray-500 text-sm mb-4">Try searching for:</p>
+          <div class="flex flex-wrap justify-center gap-2">
+            <button onclick="quickSearch('mom medical appointment')" class="bg-gray-800 hover:bg-gray-700 text-gray-300 text-xs px-3 py-1.5 rounded-full transition-colors cursor-pointer">mom medical appointment</button>
+            <button onclick="quickSearch('¿qué dije sobre el presupuesto?')" class="bg-gray-800 hover:bg-gray-700 text-gray-300 text-xs px-3 py-1.5 rounded-full transition-colors cursor-pointer">¿qué dije sobre el presupuesto?</button>
+            <button onclick="quickSearch('meeting notes')" class="bg-gray-800 hover:bg-gray-700 text-gray-300 text-xs px-3 py-1.5 rounded-full transition-colors cursor-pointer">meeting notes</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </main>
+
+  <nav id="mobile-tabs" class="md:hidden fixed bottom-0 inset-x-0 bg-gray-900 border-t border-gray-700 grid grid-cols-4 h-14 z-20"></nav>
+
+  <script src="/app/js/shared.js"></script>
+  <script>
+    renderSidebar('search');
+    renderMobileTabs('search');
+
+    const form = $('#search-form');
+    const input = $('#q');
+
+    const q = new URLSearchParams(location.search).get('q');
+    if (q) { input.value = q; doSearch(q); }
+
+    form.addEventListener('submit', e => { e.preventDefault(); const q = input.value.trim(); if (q) doSearch(q); });
+    function quickSearch(q) { input.value = q; doSearch(q); }
+
+    async function doSearch(query) {
+      const results = $('#results');
+      results.innerHTML = `<div class="flex items-center justify-center py-12"><div class="w-8 h-8 border-2 border-[#6366f1] border-t-transparent rounded-full animate-spin"></div><span class="ml-3 text-gray-400 text-sm">Searching...</span></div>`;
+      try {
+        const data = await api('/api/ai-search', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ q: query }),
+        });
+        if (!data) return;
+        renderResults(data);
+      } catch(e) {
+        results.innerHTML = `<div class="bg-red-500/10 border border-red-500/20 rounded-xl p-4 text-red-400 text-sm">${esc(e.message)}</div>`;
+      }
+    }
+
+    function renderResults(data) {
+      const el = $('#results');
+      let html = '';
+      if (data.answer) {
+        html += `<div class="bg-gray-800 rounded-xl p-4 border-l-2 border-[#6366f1] mb-4">
+          <p class="text-xs text-gray-500 mb-2 font-medium">AI ANSWER</p>
+          <p class="text-sm text-gray-200 leading-relaxed whitespace-pre-wrap">${esc(data.answer)}</p>
+        </div>`;
+      }
+      const sources = data.sources || [];
+      if (sources.length) {
+        html += `<p class="text-xs text-gray-500 font-medium mb-3">SOURCES (${sources.length})</p><div class="space-y-2">`;
+        sources.forEach((s, i) => {
+          html += `<div class="bg-gray-900 rounded-xl p-3 border border-gray-800 hover:bg-gray-800/50 cursor-pointer transition-colors" onclick="window.location.href='/app/?id=${s.id}'">
+            <div class="flex items-center gap-2 mb-1">
+              <span class="text-xs text-gray-500 font-mono">[${i + 1}]</span>
+              <span class="text-xs text-gray-500">${formatDate(s.created_at)}</span>
+              ${s.language ? `<span class="text-xs">${getFlag(s.language)}</span>` : ''}
+            </div>
+            <p class="text-xs text-gray-300">${esc((s.text || '').slice(0, 200))}</p>
+          </div>`;
+        });
+        html += `</div>`;
+      }
+      if (!data.answer && !sources.length) {
+        html = `<div class="text-center py-12 text-gray-500"><span class="text-3xl block mb-2">🔍</span><p class="text-sm">No results found. Try different keywords.</p></div>`;
+      }
+      el.innerHTML = html;
+    }
+  </script>
+</body>
+</html>

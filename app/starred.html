@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<html lang="en" class="bg-gray-950">
+<head>
+  <meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>VozClara — Starred</title>
+  <link rel="icon" href="/public/favicon.svg">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>tailwind.config={theme:{extend:{fontFamily:{sans:['Inter','sans-serif']}}}}</script>
+  <style>body{font-family:'Inter',sans-serif}::-webkit-scrollbar{width:6px}::-webkit-scrollbar-track{background:#030712}::-webkit-scrollbar-thumb{background:#374151;border-radius:3px}</style>
+</head>
+<body class="bg-gray-950 text-white min-h-screen flex">
+  <aside id="sidebar" class="hidden md:flex md:flex-col w-56 bg-gray-900 border-r border-gray-700 h-screen sticky top-0 shrink-0"></aside>
+
+  <main class="flex-1 min-w-0 pb-16 md:pb-0">
+    <header class="sticky top-0 z-10 bg-gray-950/80 backdrop-blur border-b border-gray-800 px-4 sm:px-6 py-3">
+      <h1 class="text-lg font-semibold">⭐ Starred</h1>
+    </header>
+    <div class="px-4 sm:px-6 py-4" id="content">
+      <div class="space-y-3"><div class="h-16 bg-gray-800 rounded-xl animate-pulse"></div><div class="h-16 bg-gray-800 rounded-xl animate-pulse"></div></div>
+    </div>
+  </main>
+
+  <nav id="mobile-tabs" class="md:hidden fixed bottom-0 inset-x-0 bg-gray-900 border-t border-gray-700 grid grid-cols-4 h-14 z-20"></nav>
+
+  <script src="/app/js/shared.js"></script>
+  <script>
+    renderSidebar('starred');
+    renderMobileTabs('starred');
+
+    (async () => {
+      try {
+        const data = await api('/api/vc/transcripts?starred=true');
+        if (!data) return;
+        render(data.items || []);
+      } catch(e) { showError('#content', e.message); }
+    })();
+
+    function render(items) {
+      const el = $('#content');
+      if (!items.length) {
+        showEmpty('#content', '⭐', 'No starred transcripts', 'Star important transcripts to find them quickly here');
+        return;
+      }
+      el.innerHTML = `<div class="space-y-2">${items.map(t => {
+        const preview = (t.transcript_text || '').slice(0, 100);
+        return `<a href="/app/?id=${t.id}" class="bg-gray-900 rounded-xl p-3 border border-gray-800 hover:bg-gray-800/50 cursor-pointer transition-colors block">
+          <div class="flex items-center gap-2 mb-1">
+            <span class="text-amber-400 text-sm">★</span>
+            ${sourceBadge(t.source)}
+            <span class="text-xs">${getFlag(t.language_detected)}</span>
+            ${t.audio_duration_sec ? `<span class="text-xs text-gray-500">🎙️ ${formatDuration(t.audio_duration_sec)}</span>` : ''}
+            <span class="text-xs text-gray-500 ml-auto">${formatDate(t.created_at)}</span>
+          </div>
+          <p class="text-xs text-gray-300 truncate">${esc(preview)}</p>
+        </a>`;
+      }).join('')}</div>`;
+    }
+  </script>
+</body>
+</html>

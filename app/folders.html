@@ -1,0 +1,105 @@
+<!DOCTYPE html>
+<html lang="en" class="bg-gray-950">
+<head>
+  <meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>VozClara — Folders</title>
+  <link rel="icon" href="/public/favicon.svg">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>tailwind.config={theme:{extend:{fontFamily:{sans:['Inter','sans-serif']}}}}</script>
+  <style>body{font-family:'Inter',sans-serif}::-webkit-scrollbar{width:6px}::-webkit-scrollbar-track{background:#030712}::-webkit-scrollbar-thumb{background:#374151;border-radius:3px}</style>
+</head>
+<body class="bg-gray-950 text-white min-h-screen flex">
+  <aside id="sidebar" class="hidden md:flex md:flex-col w-56 bg-gray-900 border-r border-gray-700 h-screen sticky top-0 shrink-0"></aside>
+
+  <main class="flex-1 min-w-0 pb-16 md:pb-0">
+    <header class="sticky top-0 z-10 bg-gray-950/80 backdrop-blur border-b border-gray-800 px-4 sm:px-6 py-3 flex items-center justify-between">
+      <h1 class="text-lg font-semibold">Folders</h1>
+      <button onclick="showCreateModal()" class="bg-[#6366f1] hover:bg-[#6366f1]/80 text-white text-xs px-3 py-1.5 rounded-lg transition-colors font-medium">+ New Folder</button>
+    </header>
+    <div class="px-4 sm:px-6 py-4" id="content">
+      <div class="space-y-3"><div class="h-16 bg-gray-800 rounded-xl animate-pulse"></div></div>
+    </div>
+  </main>
+
+  <!-- Create folder modal -->
+  <div id="create-modal" class="fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-4 hidden">
+    <div class="bg-gray-900 rounded-xl border border-gray-700 w-full max-w-sm p-6">
+      <h2 class="font-semibold mb-4">New Folder</h2>
+      <input type="text" id="folder-name" placeholder="Folder name" class="w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-[#6366f1] mb-3">
+      <div class="flex gap-2 mb-4">
+        <button onclick="setColor('#6366f1')" class="w-8 h-8 rounded-full bg-[#6366f1] ring-2 ring-white/20" id="c-6366f1"></button>
+        <button onclick="setColor('#ef4444')" class="w-8 h-8 rounded-full bg-[#ef4444]" id="c-ef4444"></button>
+        <button onclick="setColor('#22c55e')" class="w-8 h-8 rounded-full bg-[#22c55e]" id="c-22c55e"></button>
+        <button onclick="setColor('#f59e0b')" class="w-8 h-8 rounded-full bg-[#f59e0b]" id="c-f59e0b"></button>
+        <button onclick="setColor('#8b5cf6')" class="w-8 h-8 rounded-full bg-[#8b5cf6]" id="c-8b5cf6"></button>
+        <button onclick="setColor('#ec4899')" class="w-8 h-8 rounded-full bg-[#ec4899]" id="c-ec4899"></button>
+      </div>
+      <div class="flex gap-2">
+        <button onclick="hideCreateModal()" class="flex-1 bg-gray-800 hover:bg-gray-700 text-gray-300 py-2 rounded-lg text-sm transition-colors">Cancel</button>
+        <button onclick="createFolder()" class="flex-1 bg-[#6366f1] hover:bg-[#6366f1]/80 text-white py-2 rounded-lg text-sm font-medium transition-colors">Create</button>
+      </div>
+    </div>
+  </div>
+
+  <nav id="mobile-tabs" class="md:hidden fixed bottom-0 inset-x-0 bg-gray-900 border-t border-gray-700 grid grid-cols-4 h-14 z-20"></nav>
+
+  <script src="/app/js/shared.js"></script>
+  <script>
+    renderSidebar('folders');
+    renderMobileTabs('folders');
+
+    let folders = [];
+    let selectedColor = '#6366f1';
+
+    (async () => {
+      try {
+        folders = await api('/api/vc/folders') || [];
+        render();
+      } catch(e) { showError('#content', e.message); }
+    })();
+
+    function render() {
+      const el = $('#content');
+      if (!folders.length) {
+        el.innerHTML = `<div class="flex flex-col items-center justify-center py-16 text-gray-400">
+          <span class="text-4xl mb-3">📁</span>
+          <p class="font-medium text-white">No folders yet</p>
+          <p class="text-sm mt-1">Create folders to organize your transcripts</p>
+          <button onclick="showCreateModal()" class="mt-4 bg-[#6366f1] hover:bg-[#6366f1]/80 text-white text-sm px-4 py-2 rounded-lg transition-colors">Create Folder</button>
+        </div>`;
+        return;
+      }
+      el.innerHTML = `<div class="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">${folders.map(f =>
+        `<a href="/app/?folder=${f.id}" class="bg-gray-900 rounded-xl p-4 border border-gray-800 hover:bg-gray-800/50 cursor-pointer transition-colors block">
+          <div class="flex items-center gap-3">
+            <div class="w-10 h-10 rounded-lg flex items-center justify-center text-lg" style="background:${f.color || '#6366f1'}20;color:${f.color || '#6366f1'}">📁</div>
+            <div><p class="text-sm font-medium">${esc(f.name)}</p><p class="text-xs text-gray-500">${formatDate(f.created_at)}</p></div>
+          </div>
+        </a>`
+      ).join('')}</div>`;
+    }
+
+    function setColor(c) {
+      selectedColor = c;
+      ['6366f1','ef4444','22c55e','f59e0b','8b5cf6','ec4899'].forEach(hex => {
+        const btn = $(`#c-${hex}`);
+        if (btn) btn.className = `w-8 h-8 rounded-full bg-[#${hex}] ${c === '#'+hex ? 'ring-2 ring-white/20' : ''}`;
+      });
+    }
+    function showCreateModal() { show('#create-modal'); $('#folder-name').focus(); }
+    function hideCreateModal() { hide('#create-modal'); }
+    async function createFolder() {
+      const name = $('#folder-name').value.trim();
+      if (!name) return;
+      try {
+        const f = await api('/api/vc/folders', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ name, color: selectedColor }) });
+        if (f) { folders.push(f); render(); }
+        hideCreateModal();
+        $('#folder-name').value = '';
+      } catch(e) { alert(e.message); }
+    }
+  </script>
+</body>
+</html>

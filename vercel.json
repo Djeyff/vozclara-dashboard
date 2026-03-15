@@ -1,0 +1,9 @@
+{
+  "rewrites": [
+    { "source": "/api/:path*", "destination": "https://vozclara-app.zeabur.app/api/:path*" }
+  ],
+  "routes": [
+    { "src": "/app/(.*)", "dest": "/app/$1" },
+    { "src": "/app", "dest": "/app/index.html" }
+  ]
+}

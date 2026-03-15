@@ -1,0 +1,174 @@
+<!DOCTYPE html>
+<html lang="en" class="bg-gray-950">
+<head>
+  <meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>VozClara — Inbox</title>
+  <link rel="icon" href="/public/favicon.svg">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>tailwind.config={theme:{extend:{fontFamily:{sans:['Inter','sans-serif']}}}}</script>
+  <style>body{font-family:'Inter',sans-serif}::-webkit-scrollbar{width:6px}::-webkit-scrollbar-track{background:#030712}::-webkit-scrollbar-thumb{background:#374151;border-radius:3px}</style>
+</head>
+<body class="bg-gray-950 text-white min-h-screen flex">
+  <aside id="sidebar" class="hidden md:flex md:flex-col w-56 bg-gray-900 border-r border-gray-700 h-screen sticky top-0 shrink-0"></aside>
+
+  <main class="flex-1 min-w-0 pb-16 md:pb-0 flex">
+    <!-- Transcript list -->
+    <div id="list-panel" class="w-full md:w-80 md:border-r md:border-gray-700 flex flex-col h-screen">
+      <header class="sticky top-0 z-10 bg-gray-950/80 backdrop-blur border-b border-gray-800 px-4 py-3">
+        <h1 class="text-lg font-semibold mb-2">Inbox</h1>
+        <div class="flex gap-1 overflow-x-auto">
+          <button onclick="setSource('all')" id="src-all" class="px-3 py-1 text-xs rounded-full bg-[#6366f1] text-white whitespace-nowrap">All</button>
+          <button onclick="setSource('whatsapp')" id="src-whatsapp" class="px-3 py-1 text-xs rounded-full bg-gray-800 text-gray-400 whitespace-nowrap hover:text-white">WhatsApp</button>
+          <button onclick="setSource('telegram')" id="src-telegram" class="px-3 py-1 text-xs rounded-full bg-gray-800 text-gray-400 whitespace-nowrap hover:text-white">Telegram</button>
+          <button onclick="setSource('upload')" id="src-upload" class="px-3 py-1 text-xs rounded-full bg-gray-800 text-gray-400 whitespace-nowrap hover:text-white">Upload</button>
+        </div>
+      </header>
+      <div id="transcript-list" class="flex-1 overflow-y-auto px-3 py-3 space-y-2">
+        <div class="h-16 bg-gray-800 rounded-xl animate-pulse"></div>
+        <div class="h-16 bg-gray-800 rounded-xl animate-pulse"></div>
+        <div class="h-16 bg-gray-800 rounded-xl animate-pulse"></div>
+      </div>
+      <div id="pagination" class="px-3 py-2 border-t border-gray-800 hidden"></div>
+    </div>
+
+    <!-- Detail panel -->
+    <div id="detail-panel" class="hidden md:flex flex-1 flex-col h-screen">
+      <div class="flex-1 flex items-center justify-center text-gray-500">
+        <div class="text-center"><span class="text-4xl block mb-2">🎙️</span><p class="text-sm">Select a transcript to view details</p></div>
+      </div>
+    </div>
+  </main>
+
+  <nav id="mobile-tabs" class="md:hidden fixed bottom-0 inset-x-0 bg-gray-900 border-t border-gray-700 grid grid-cols-4 h-14 z-20"></nav>
+
+  <script src="/app/js/shared.js"></script>
+  <script>
+    renderSidebar('inbox');
+    renderMobileTabs('inbox');
+
+    let transcripts = [];
+    let currentPage = 1;
+    let totalPages = 1;
+    let currentSource = 'all';
+    let currentFolder = null;
+
+    (async () => { await loadTranscripts(1); })();
+
+    function setSource(s) {
+      currentSource = s;
+      ['all','whatsapp','telegram','upload'].forEach(t => {
+        $(`#src-${t}`).className = `px-3 py-1 text-xs rounded-full whitespace-nowrap ${t === s ? 'bg-[#6366f1] text-white' : 'bg-gray-800 text-gray-400 hover:text-white'}`;
+      });
+      loadTranscripts(1);
+    }
+
+    async function loadTranscripts(page) {
+      currentPage = page;
+      try {
+        let url = `/api/vc/transcripts?page=${page}`;
+        if (currentSource !== 'all') url += `&source=${currentSource}`;
+        if (currentFolder) url += `&folder=${currentFolder}`;
+        const data = await api(url);
+        if (!data) return;
+        transcripts = data.items || [];
+        totalPages = data.pages || 1;
+        renderList();
+      } catch(e) {
+        showError('#transcript-list', e.message);
+      }
+    }
+
+    function renderList() {
+      const el = $('#transcript-list');
+      if (!transcripts.length) {
+        showEmpty('#transcript-list', '🎙️', 'No transcripts yet', 'Send a voice note to your VozClara bot to get started');
+        hide('#pagination');
+        return;
+      }
+
+      el.innerHTML = transcripts.map(t => {
+        const preview = (t.transcript_text || '').slice(0, 80);
+        const dur = t.audio_duration_sec ? formatDuration(t.audio_duration_sec) : '';
+        return `<div class="bg-gray-900 rounded-xl p-3 border border-gray-800 hover:bg-gray-800/50 cursor-pointer transition-colors" onclick="selectTranscript('${t.id}')">
+          <div class="flex items-center gap-2 mb-1">
+            ${sourceBadge(t.source)}
+            <span class="text-xs">${getFlag(t.language_detected)}</span>
+            ${dur ? `<span class="text-xs text-gray-500">🎙️ ${dur}</span>` : ''}
+            ${t.starred ? '<span class="text-amber-400 text-xs">★</span>' : ''}
+            <span class="text-xs text-gray-500 ml-auto shrink-0">${formatDate(t.created_at)}</span>
+          </div>
+          ${t.sender_name ? `<p class="text-xs text-gray-500 mb-0.5">${esc(t.sender_name)}${t.chat_name ? ' · ' + esc(t.chat_name) : ''}</p>` : ''}
+          <p class="text-xs text-gray-300 truncate">${esc(preview)}</p>
+        </div>`;
+      }).join('');
+
+      if (totalPages > 1) {
+        show('#pagination');
+        $('#pagination').innerHTML = `<div class="flex items-center justify-between text-xs">
+          <button onclick="loadTranscripts(${currentPage - 1})" class="text-gray-400 hover:text-white ${currentPage <= 1 ? 'opacity-30 pointer-events-none' : ''}">← Prev</button>
+          <span class="text-gray-500">${currentPage}/${totalPages}</span>
+          <button onclick="loadTranscripts(${currentPage + 1})" class="text-gray-400 hover:text-white ${currentPage >= totalPages ? 'opacity-30 pointer-events-none' : ''}">Next →</button>
+        </div>`;
+      } else { hide('#pagination'); }
+    }
+
+    async function selectTranscript(id) {
+      if (window.innerWidth < 768) { hide('#list-panel'); show('#detail-panel'); $('#detail-panel').classList.add('flex'); }
+      else { show('#detail-panel'); }
+
+      const dp = $('#detail-panel');
+      dp.innerHTML = `<div class="flex-1 flex items-center justify-center"><div class="h-16 bg-gray-800 rounded-xl animate-pulse w-3/4"></div></div>`;
+
+      try {
+        const t = await api(`/api/vc/transcripts/${id}`);
+        if (!t) return;
+        renderDetail(t);
+      } catch(e) { showError('#detail-panel', e.message); }
+    }
+
+    function renderDetail(t) {
+      const dp = $('#detail-panel');
+      const summary = t.summary_json;
+      dp.innerHTML = `
+        <header class="sticky top-0 z-10 bg-gray-950/80 backdrop-blur border-b border-gray-800 px-4 py-3">
+          <div class="flex items-center gap-2 flex-wrap">
+            <button onclick="backToList()" class="md:hidden text-gray-400 hover:text-white"><svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/></svg></button>
+            ${sourceBadge(t.source)}
+            <span class="text-xs">${getFlag(t.language_detected)}</span>
+            ${t.audio_duration_sec ? `<span class="text-xs text-gray-500">🎙️ ${formatDuration(t.audio_duration_sec)}</span>` : ''}
+            <span class="text-xs text-gray-500">${formatDate(t.created_at)}</span>
+            <div class="ml-auto flex gap-2">
+              <button onclick="toggleStar('${t.id}')" class="text-lg ${t.starred ? 'text-amber-400' : 'text-gray-600'} hover:text-amber-400">${t.starred ? '★' : '☆'}</button>
+              <button onclick="copyText()" class="text-xs bg-gray-800 hover:bg-gray-700 px-2 py-1 rounded">Copy</button>
+              <button onclick="deleteTranscript('${t.id}')" class="text-xs bg-red-500/20 text-red-400 hover:bg-red-500/30 px-2 py-1 rounded">Delete</button>
+            </div>
+          </div>
+          ${t.sender_name ? `<p class="text-xs text-gray-500 mt-1">${esc(t.sender_name)}${t.chat_name ? ' · ' + esc(t.chat_name) : ''}</p>` : ''}
+        </header>
+        <div class="flex-1 overflow-y-auto px-4 py-4 space-y-4">
+          ${summary ? `<div class="bg-gray-900 rounded-xl p-4 border border-gray-800">
+            <h3 class="text-sm font-medium mb-2">AI Summary</h3>
+            ${summary.keyPoints ? `<ul class="text-xs text-gray-300 space-y-1">${summary.keyPoints.map(p => `<li>• ${esc(p)}</li>`).join('')}</ul>` : ''}
+            ${summary.actionItems?.length ? `<div class="mt-2"><p class="text-xs text-gray-500 font-medium">Action Items:</p><ul class="text-xs text-gray-300 space-y-1">${summary.actionItems.map(a => `<li>☐ ${esc(a)}</li>`).join('')}</ul></div>` : ''}
+          </div>` : ''}
+          <div class="bg-gray-900 rounded-xl p-4 border border-gray-800">
+            <h3 class="text-sm font-medium mb-2">Transcript</h3>
+            <p id="transcript-text" class="text-sm text-gray-300 leading-relaxed whitespace-pre-wrap">${esc(t.transcript_text || 'No transcript available')}</p>
+          </div>
+        </div>`;
+    }
+
+    async function toggleStar(id) {
+      try { await api(`/api/vc/transcripts/${id}/star`, { method: 'POST' }); selectTranscript(id); } catch(e) {}
+    }
+    async function deleteTranscript(id) {
+      if (!confirm('Delete this transcript?')) return;
+      try { await api(`/api/vc/transcripts/${id}`, { method: 'DELETE' }); backToList(); loadTranscripts(currentPage); } catch(e) { alert(e.message); }
+    }
+    function copyText() { const t = $('#transcript-text')?.textContent; if (t) navigator.clipboard.writeText(t); }
+    function backToList() { hide('#detail-panel'); $('#detail-panel').classList.remove('flex'); show('#list-panel'); $('#list-panel').style.display = ''; }
+  </script>
+</body>
+</html>
