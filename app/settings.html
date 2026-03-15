@@ -1,212 +1,259 @@
 <!DOCTYPE html>
-<html lang="en" class="bg-gray-950">
+<html lang="es">
 <head>
-  <meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
-  <title>VozClara — Settings</title>
-  <link rel="icon" href="/public/favicon.svg">
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
-  <script src="https://cdn.tailwindcss.com"></script>
-  <script>tailwind.config={theme:{extend:{fontFamily:{sans:['Inter','sans-serif']}}}}</script>
-  <style>body{font-family:'Inter',sans-serif}::-webkit-scrollbar{width:6px}::-webkit-scrollbar-track{background:#030712}::-webkit-scrollbar-thumb{background:#374151;border-radius:3px}</style>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Configuración — VozClara</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:opsz,wght@9..40,400;9..40,500;9..40,600;9..40,700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="/app/styles.css">
 </head>
-<body class="bg-gray-950 text-white min-h-screen flex">
-  <aside id="sidebar" class="hidden md:flex md:flex-col w-56 bg-gray-900 border-r border-gray-700 h-screen sticky top-0 shrink-0"></aside>
+<body>
+<div class="layout">
+  <aside class="sidebar" id="sidebar"></aside>
+  <div class="main">
+    <div class="page-content" style="max-width:800px">
 
-  <main class="flex-1 min-w-0 pb-16 md:pb-0">
-    <header class="sticky top-0 z-10 bg-gray-950/80 backdrop-blur border-b border-gray-800 px-4 sm:px-6 py-3">
-      <h1 class="text-lg font-semibold">Settings</h1>
-    </header>
+      <div class="page-header animate-in"><h1 class="page-title">Configuración</h1></div>
 
-    <div class="border-b border-gray-800 px-4 sm:px-6 overflow-x-auto">
-      <div class="flex gap-0 min-w-max" id="tabs"></div>
-    </div>
+      <div class="tabs animate-in delay-1">
+        <button class="tab active" onclick="showTab('perfil')">Perfil</button>
+        <button class="tab" onclick="showTab('idioma')">Idioma</button>
+        <button class="tab" onclick="showTab('transcripcion')">Transcripción</button>
+        <button class="tab" onclick="showTab('facturacion')">Facturación</button>
+        <button class="tab" onclick="showTab('api')">API Keys</button>
+        <button class="tab" onclick="showTab('datos')">Datos</button>
+        <button class="tab" onclick="showTab('referidos')">Referidos</button>
+      </div>
 
-    <div class="px-4 sm:px-6 py-4 max-w-2xl" id="tab-content">
-      <div class="h-32 bg-gray-800 rounded-xl animate-pulse"></div>
-    </div>
-  </main>
-
-  <nav id="mobile-tabs" class="md:hidden fixed bottom-0 inset-x-0 bg-gray-900 border-t border-gray-700 grid grid-cols-4 h-14 z-20"></nav>
-
-  <script src="/app/js/shared.js"></script>
-  <script>
-    renderSidebar('settings');
-    renderMobileTabs('settings');
-
-    const TABS = [
-      { id: 'profile', label: 'Profile' },
-      { id: 'language', label: 'Language' },
-      { id: 'transcription', label: 'Transcription' },
-      { id: 'billing', label: 'Billing' },
-      { id: 'api', label: 'API Keys' },
-      { id: 'privacy', label: 'Data & Privacy' },
-      { id: 'referral', label: 'Referral' },
-    ];
-
-    let activeTab = 'profile';
-    let userSettings = null;
-    let usageData = null;
-
-    function renderTabs() {
-      $('#tabs').innerHTML = TABS.map(t =>
-        `<button onclick="switchTab('${t.id}')" class="px-4 py-3 text-sm font-medium whitespace-nowrap border-b-2 transition-colors ${t.id === activeTab ? 'text-white border-[#6366f1]' : 'text-gray-400 border-transparent hover:text-white'}">${t.label}</button>`
-      ).join('');
-    }
-
-    async function switchTab(id) {
-      activeTab = id;
-      renderTabs();
-      const el = $('#tab-content');
-      el.innerHTML = '<div class="h-32 bg-gray-800 rounded-xl animate-pulse"></div>';
-
-      try {
-        if (!userSettings) userSettings = await api('/api/vc/settings');
-        if (!usageData) usageData = await api('/api/vc/usage');
-
-        switch(id) {
-          case 'profile': renderProfile(); break;
-          case 'language': renderLanguage(); break;
-          case 'transcription': renderTranscription(); break;
-          case 'billing': renderBilling(); break;
-          case 'api': renderAPI(); break;
-          case 'privacy': renderPrivacy(); break;
-          case 'referral': renderReferral(); break;
-        }
-      } catch(e) { showError('#tab-content', e.message); }
-    }
-
-    function renderProfile() {
-      const u = userSettings || {};
-      $('#tab-content').innerHTML = `<div class="space-y-4">
-        <div class="bg-gray-900 rounded-xl p-4 border border-gray-800 flex items-center gap-4">
-          <div class="w-16 h-16 rounded-full bg-gradient-to-br from-[#6366f1] to-[#818cf8] flex items-center justify-center text-2xl font-bold">${(u.name || u.email || 'U')[0].toUpperCase()}</div>
-          <div><p class="font-medium">${esc(u.name || 'User')}</p><p class="text-sm text-gray-400">${esc(u.email || '')}</p><p class="text-xs text-gray-500 mt-0.5">${(u.tier || 'free').toUpperCase()} plan · Joined ${formatDate(u.created_at)}</p></div>
+      <!-- PERFIL -->
+      <div class="tab-content" id="tab-perfil">
+        <div class="form-group">
+          <label class="form-label">Nombre</label>
+          <input class="form-input" value="Jeffrey Hubert" style="max-width:400px">
         </div>
-        <div class="bg-gray-900 rounded-xl p-4 border border-gray-800">
-          <label class="text-xs text-gray-400 block mb-1">Display Name</label>
-          <input type="text" value="${esc(u.name || '')}" class="w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-[#6366f1]" readonly>
+        <div class="form-group">
+          <label class="form-label">Email</label>
+          <input class="form-input" value="jeffrey@lti.do" style="max-width:400px" disabled>
         </div>
-        <div class="bg-gray-900 rounded-xl p-4 border border-gray-800">
-          <label class="text-xs text-gray-400 block mb-1">Phone</label>
-          <div class="flex items-center gap-2">
-            <input type="text" value="${esc(u.phone || '')}" class="flex-1 bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-sm text-white" readonly>
-            <span class="${u.phone_verified ? 'text-emerald-400' : 'text-amber-400'} text-xs">${u.phone_verified ? '✓ Verified' : 'Not verified'}</span>
+        <div class="form-group">
+          <label class="form-label">Teléfono</label>
+          <input class="form-input" value="+1 809 204 4903" style="max-width:400px">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Plataformas conectadas</label>
+          <div style="display:flex;gap:12px;margin-top:8px">
+            <div class="card" style="padding:12px 16px;display:flex;align-items:center;gap:10px;flex:1;max-width:200px">
+              <div style="width:28px;height:28px;border-radius:6px;background:rgba(37,211,102,0.15);display:flex;align-items:center;justify-content:center;font-size:12px;color:#25d366;font-weight:700">W</div>
+              <div>
+                <div style="font-size:13px;font-weight:600">WhatsApp</div>
+                <div style="font-size:11px;color:var(--green)">Conectado</div>
+              </div>
+            </div>
+            <div class="card" style="padding:12px 16px;display:flex;align-items:center;gap:10px;flex:1;max-width:200px">
+              <div style="width:28px;height:28px;border-radius:6px;background:rgba(0,136,204,0.15);display:flex;align-items:center;justify-content:center;font-size:12px;color:#0088cc;font-weight:700">T</div>
+              <div>
+                <div style="font-size:13px;font-weight:600">Telegram</div>
+                <div style="font-size:11px;color:var(--green)">Conectado</div>
+              </div>
+            </div>
           </div>
         </div>
-      </div>`;
-    }
+        <button class="btn btn-primary" style="margin-top:8px">Guardar cambios</button>
+      </div>
 
-    function renderLanguage() {
-      $('#tab-content').innerHTML = `<div class="space-y-4">
-        <div class="bg-gray-900 rounded-xl p-4 border border-gray-800">
-          <h3 class="text-sm font-medium mb-2">Output Language</h3>
-          <p class="text-xs text-gray-400 mb-3">Language for summaries and AI responses</p>
-          <select class="w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-[#6366f1]">
-            <option value="auto">Auto-detect</option>
-            <option value="es">Spanish</option>
-            <option value="en">English</option>
-            <option value="fr">French</option>
-            <option value="pt">Portuguese</option>
-            <option value="de">German</option>
+      <!-- IDIOMA -->
+      <div class="tab-content" id="tab-idioma" style="display:none">
+        <div class="form-group">
+          <label class="form-label">Idioma de transcripción</label>
+          <select class="form-input" style="max-width:300px">
+            <option>Auto-detectar (recomendado)</option>
+            <option>Español</option>
+            <option>English</option>
+            <option>Français</option>
+            <option>Português</option>
+            <option>Deutsch</option>
+          </select>
+          <div style="font-size:12px;color:var(--text-muted);margin-top:4px">VozClara detecta el idioma automáticamente en las 99 idiomas soportados.</div>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Idioma de la interfaz</label>
+          <select class="form-input" style="max-width:300px">
+            <option>Español</option>
+            <option>English</option>
+            <option>Français</option>
           </select>
         </div>
-        <div class="bg-gray-900 rounded-xl p-4 border border-gray-800">
-          <h3 class="text-sm font-medium mb-2">Speech Detection</h3>
-          <p class="text-xs text-gray-400">Automatic — detects 99+ languages from speech content</p>
-        </div>
-      </div>`;
-    }
+        <button class="btn btn-primary" style="margin-top:8px">Guardar</button>
+      </div>
 
-    function renderTranscription() {
-      $('#tab-content').innerHTML = `<div class="space-y-4">
-        <div class="bg-gray-900 rounded-xl p-4 border border-gray-800">
-          <h3 class="text-sm font-medium mb-2">Transcription Quality</h3>
-          <p class="text-xs text-gray-400 mb-3">Higher quality = slightly slower but more accurate</p>
-          <select class="w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-[#6366f1]">
-            <option>Standard (faster)</option>
-            <option selected>Enhanced (recommended)</option>
-          </select>
-        </div>
-        <div class="bg-gray-900 rounded-xl p-4 border border-gray-800">
-          <h3 class="text-sm font-medium mb-2">Auto-Summary</h3>
-          <p class="text-xs text-gray-400 mb-3">Automatically generate key points for each voice note</p>
-          <div class="flex items-center gap-2">
-            <div class="w-10 h-5 bg-[#6366f1] rounded-full relative cursor-pointer"><div class="w-4 h-4 bg-white rounded-full absolute top-0.5 right-0.5"></div></div>
-            <span class="text-sm text-gray-300">Enabled</span>
+      <!-- TRANSCRIPCION -->
+      <div class="tab-content" id="tab-transcripcion" style="display:none">
+        <div class="card" style="margin-bottom:14px">
+          <div style="display:flex;align-items:center;justify-content:space-between">
+            <div>
+              <div style="font-size:14px;font-weight:600">Resumen automático</div>
+              <div style="font-size:12px;color:var(--text-muted)">Genera un resumen IA con cada transcripción</div>
+            </div>
+            <div class="toggle on" onclick="this.classList.toggle('on')"><div class="toggle-knob"></div></div>
           </div>
         </div>
-      </div>`;
-    }
-
-    function renderBilling() {
-      const u = usageData || {};
-      const tier = (u.tier || 'free').toUpperCase();
-      const l = u.limits || {};
-      const t = u.today || {};
-      const a = u.all_time || {};
-      $('#tab-content').innerHTML = `<div class="space-y-4">
-        <div class="bg-gray-900 rounded-xl p-6 border border-gray-800">
-          <div class="flex items-center justify-between mb-4">
-            <div><p class="text-xs text-gray-500">CURRENT PLAN</p><p class="text-2xl font-bold">${tier}</p></div>
-            <button onclick="window.open('https://voz-clara.com/#pricing','_blank')" class="bg-[#6366f1] hover:bg-[#6366f1]/80 text-white text-sm px-4 py-2 rounded-lg transition-colors">Upgrade</button>
+        <div class="card" style="margin-bottom:14px">
+          <div style="display:flex;align-items:center;justify-content:space-between">
+            <div>
+              <div style="font-size:14px;font-weight:600">Traducción automática</div>
+              <div style="font-size:12px;color:var(--text-muted)">Traduce automáticamente al idioma de tu interfaz</div>
+            </div>
+            <div class="toggle" onclick="this.classList.toggle('on')"><div class="toggle-knob"></div></div>
           </div>
         </div>
-        <div class="bg-gray-900 rounded-xl p-6 border border-gray-800 space-y-4">
-          <h3 class="text-sm font-medium">Usage</h3>
-          ${usageMeter('Notes today', t.notes_count || 0, l.notes_per_day || 5)}
-          ${usageMeter('Minutes/month', Math.round(a.minutes || 0), l.minutes_per_month || 30)}
-          ${usageMeter('AI Searches', a.searches || 0, l.searches_per_month || 10)}
-        </div>
-      </div>`;
-    }
-
-    function renderAPI() {
-      $('#tab-content').innerHTML = `<div class="bg-gray-900 rounded-xl p-6 border border-gray-800 text-center">
-        <span class="text-3xl block mb-3">🔑</span>
-        <p class="font-medium">API Keys — Business Plan</p>
-        <p class="text-sm text-gray-400 mt-2">Programmatic access to your transcripts and AI search. Available on Business plan.</p>
-        <button onclick="window.open('https://voz-clara.com/#pricing','_blank')" class="mt-4 bg-[#6366f1] hover:bg-[#6366f1]/80 text-white text-sm px-4 py-2 rounded-lg transition-colors">Upgrade to Business</button>
-      </div>`;
-    }
-
-    function renderPrivacy() {
-      $('#tab-content').innerHTML = `<div class="space-y-4">
-        <div class="bg-gray-900 rounded-xl p-4 border border-gray-800">
-          <h3 class="text-sm font-medium mb-2">Export Your Data</h3>
-          <p class="text-xs text-gray-400 mb-3">Download all your transcripts and account data</p>
-          <button class="bg-gray-800 hover:bg-gray-700 text-gray-300 text-sm px-4 py-2 rounded-lg transition-colors">Request Export</button>
-        </div>
-        <div class="bg-gray-900 rounded-xl p-4 border border-red-500/30">
-          <h3 class="text-sm font-medium text-red-400 mb-2">Delete Account</h3>
-          <p class="text-xs text-gray-400 mb-3">Permanently delete your account and all associated data.</p>
-          <button class="bg-red-500/20 text-red-400 hover:bg-red-500/30 text-sm px-4 py-2 rounded-lg transition-colors">Delete Account</button>
-        </div>
-      </div>`;
-    }
-
-    function renderReferral() {
-      $('#tab-content').innerHTML = `<div class="bg-gradient-to-br from-[#6366f1]/20 to-gray-900 rounded-xl p-6 border border-[#6366f1]/30 text-center">
-        <span class="text-4xl block mb-3">🎁</span>
-        <h2 class="text-xl font-bold mb-2">Refer a Friend</h2>
-        <p class="text-sm text-gray-300 mb-4">Share VozClara and earn free minutes when friends sign up.</p>
-        <div class="bg-gray-800/50 rounded-xl p-4 mb-4 max-w-sm mx-auto">
-          <p class="text-xs text-gray-500 mb-1">YOUR REFERRAL LINK</p>
-          <div class="flex items-center gap-2">
-            <input type="text" value="https://voz-clara.com/r/coming-soon" class="flex-1 bg-gray-700 border border-gray-600 rounded-lg px-3 py-2 text-sm text-white" readonly>
-            <button onclick="navigator.clipboard.writeText('https://voz-clara.com/r/coming-soon')" class="bg-[#6366f1] hover:bg-[#6366f1]/80 text-white text-xs px-3 py-2 rounded-lg transition-colors">Copy</button>
+        <div class="card">
+          <div>
+            <div style="font-size:14px;font-weight:600;margin-bottom:4px">Motor de IA</div>
+            <div style="font-size:12px;color:var(--text-muted);margin-bottom:8px">Tu plan actual utiliza:</div>
+            <div style="display:inline-flex;align-items:center;gap:6px;background:var(--bg-input);padding:8px 14px;border-radius:8px;font-size:13px">
+              <span style="color:var(--text-secondary)">Standard AI</span>
+              <span style="font-size:11px;color:var(--text-muted)">· Plan Free</span>
+            </div>
+            <div style="font-size:12px;color:var(--text-muted);margin-top:8px">Mejora a Pro para acceso a Premium AI con mayor precisión y velocidad.</div>
           </div>
         </div>
-        <div class="grid grid-cols-3 gap-3 max-w-sm mx-auto text-center">
-          <div><p class="text-xl font-bold">0</p><p class="text-xs text-gray-400">Referrals</p></div>
-          <div><p class="text-xl font-bold">0</p><p class="text-xs text-gray-400">Signed Up</p></div>
-          <div><p class="text-xl font-bold">0 min</p><p class="text-xs text-gray-400">Earned</p></div>
-        </div>
-      </div>`;
-    }
+      </div>
 
-    renderTabs();
-    switchTab('profile');
-  </script>
+      <!-- FACTURACION -->
+      <div class="tab-content" id="tab-facturacion" style="display:none">
+        <div class="plan-card" style="border-color:var(--blue)">
+          <div>
+            <div class="plan-name">Free</div>
+            <div class="plan-price">$0/mes</div>
+          </div>
+          <a href="https://voz-clara.com/#pricing" class="btn btn-primary">Cambiar plan</a>
+        </div>
+
+        <div class="usage-meter-lg">
+          <div class="usage-label-lg"><span>Notas hoy</span><span>7 / 40</span></div>
+          <div class="usage-bar-lg"><div class="fill" style="width:17.5%;background:var(--green);border-radius:3px"></div></div>
+        </div>
+        <div class="usage-meter-lg">
+          <div class="usage-label-lg"><span>Minutos de audio este mes</span><span>3 / 10</span></div>
+          <div class="usage-bar-lg"><div class="fill" style="width:30%;background:var(--green);border-radius:3px"></div></div>
+        </div>
+        <div class="usage-meter-lg">
+          <div class="usage-label-lg"><span>Búsquedas IA este mes</span><span>2 / 5</span></div>
+          <div class="usage-bar-lg"><div class="fill" style="width:40%;background:var(--green);border-radius:3px"></div></div>
+        </div>
+
+        <div style="margin-top:24px">
+          <div class="detail-section-title">Comparar planes</div>
+          <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-top:10px">
+            <div class="card" style="padding:14px;text-align:center;border-color:var(--blue)">
+              <div style="font-size:14px;font-weight:700">Free</div>
+              <div style="font-size:20px;font-weight:700;margin:8px 0">$0</div>
+              <div style="font-size:11px;color:var(--text-muted)">40 notas/día<br>10 min/mes<br>5 búsquedas</div>
+            </div>
+            <div class="card" style="padding:14px;text-align:center">
+              <div style="font-size:14px;font-weight:700">Basic</div>
+              <div style="font-size:20px;font-weight:700;margin:8px 0">$4.99</div>
+              <div style="font-size:11px;color:var(--text-muted)">200 notas/día<br>60 min/mes<br>20 búsquedas</div>
+            </div>
+            <div class="card" style="padding:14px;text-align:center">
+              <div style="font-size:14px;font-weight:700">Pro</div>
+              <div style="font-size:20px;font-weight:700;margin:8px 0">$9.99</div>
+              <div style="font-size:11px;color:var(--text-muted)">Ilimitado<br>500 min/mes<br>Ilimitado</div>
+            </div>
+            <div class="card" style="padding:14px;text-align:center">
+              <div style="font-size:14px;font-weight:700">Business</div>
+              <div style="font-size:20px;font-weight:700;margin:8px 0">$19.99</div>
+              <div style="font-size:11px;color:var(--text-muted)">Ilimitado<br>Ilimitado<br>API access</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- API KEYS -->
+      <div class="tab-content" id="tab-api" style="display:none">
+        <div class="card" style="text-align:center;padding:40px">
+          <div style="font-size:32px;margin-bottom:12px">🔑</div>
+          <h3 style="font-size:16px;font-weight:600;margin-bottom:8px">Acceso API</h3>
+          <p style="font-size:14px;color:var(--text-muted);margin-bottom:20px">Integra VozClara en tus aplicaciones. Disponible en el plan Business.</p>
+          <a href="https://voz-clara.com/#pricing" class="btn btn-primary">Mejorar a Business</a>
+        </div>
+      </div>
+
+      <!-- DATOS -->
+      <div class="tab-content" id="tab-datos" style="display:none">
+        <div class="card" style="margin-bottom:14px">
+          <div style="display:flex;align-items:center;justify-content:space-between">
+            <div>
+              <div style="font-size:14px;font-weight:600">Exportar mis datos</div>
+              <div style="font-size:12px;color:var(--text-muted)">Descarga todas tus transcripciones y resúmenes</div>
+            </div>
+            <button class="btn btn-sm btn-secondary">📤 Exportar</button>
+          </div>
+        </div>
+        <div class="card" style="border-color:rgba(231,76,60,0.3);margin-top:24px">
+          <div>
+            <div style="font-size:14px;font-weight:600;color:var(--red);margin-bottom:4px">Eliminar cuenta</div>
+            <div style="font-size:12px;color:var(--text-muted);margin-bottom:12px">Elimina permanentemente tu cuenta y todos tus datos. Esta acción no se puede deshacer.</div>
+            <div class="form-group" style="margin-bottom:12px">
+              <label class="form-label" style="color:var(--red);font-size:12px">Escribe ELIMINAR para confirmar</label>
+              <input class="form-input" placeholder="ELIMINAR" style="max-width:200px;border-color:rgba(231,76,60,0.3)" id="delete-input">
+            </div>
+            <button class="btn btn-danger" onclick="if(document.getElementById('delete-input').value==='ELIMINAR')alert('Cuenta eliminada')">Eliminar cuenta</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- REFERIDOS -->
+      <div class="tab-content" id="tab-referidos" style="display:none">
+        <div class="card" style="text-align:center;padding:32px;max-width:480px;margin:0 auto">
+          <div style="font-size:40px;margin-bottom:16px">🎁</div>
+          <h3 style="font-size:18px;font-weight:700;margin-bottom:8px">Invita amigos, gana minutos</h3>
+          <p style="font-size:14px;color:var(--text-muted);line-height:1.6;margin-bottom:24px">Por cada amigo que se registre con tu enlace, ambos reciben 10 minutos extra de transcripción gratis.</p>
+
+          <div style="margin-bottom:20px">
+            <div class="form-label">Tu enlace de referido</div>
+            <div style="display:flex;gap:8px;max-width:400px;margin:0 auto">
+              <input class="form-input" value="https://voz-clara.com/r/jeffrey" readonly style="font-size:13px;text-align:center" id="ref-link">
+              <button class="btn btn-sm btn-primary" onclick="navigator.clipboard.writeText(document.getElementById('ref-link').value);this.textContent='✓';setTimeout(()=>this.textContent='Copiar',2000)">Copiar</button>
+            </div>
+          </div>
+
+          <div style="display:flex;justify-content:center;gap:24px;margin-bottom:24px">
+            <div>
+              <div style="font-size:28px;font-weight:700;color:var(--accent)">3</div>
+              <div style="font-size:12px;color:var(--text-muted)">Referidos</div>
+            </div>
+            <div style="width:1px;background:var(--border)"></div>
+            <div>
+              <div style="font-size:28px;font-weight:700;color:var(--green)">30</div>
+              <div style="font-size:12px;color:var(--text-muted)">Min ganados</div>
+            </div>
+          </div>
+
+          <div style="display:flex;justify-content:center;gap:10px">
+            <button class="btn btn-sm btn-secondary">📱 WhatsApp</button>
+            <button class="btn btn-sm btn-secondary">📧 Email</button>
+            <button class="btn btn-sm btn-secondary">🔗 Compartir</button>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+</div>
+<nav class="mobile-tabs"><div class="mobile-tabs-inner" id="mobile-tabs"></div></nav>
+<script src="/app/js/shared.js"></script>
+<script>
+function init() { renderSidebar('settings'); renderMobileTabs('settings'); }
+function showTab(id) {
+  document.querySelectorAll('.tab-content').forEach(t => t.style.display = 'none');
+  document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+  document.getElementById('tab-' + id).style.display = 'block';
+  const names = ['perfil','idioma','transcripcion','facturacion','api','datos','referidos'];
+  const idx = names.indexOf(id);
+  if (idx >= 0) document.querySelectorAll('.tab')[idx].classList.add('active');
+}
+document.addEventListener('DOMContentLoaded', init);
+</script>
 </body>
 </html>

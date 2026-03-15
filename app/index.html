@@ -1,174 +1,189 @@
 <!DOCTYPE html>
-<html lang="en" class="bg-gray-950">
+<html lang="es">
 <head>
-  <meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
-  <title>VozClara — Inbox</title>
-  <link rel="icon" href="/public/favicon.svg">
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
-  <script src="https://cdn.tailwindcss.com"></script>
-  <script>tailwind.config={theme:{extend:{fontFamily:{sans:['Inter','sans-serif']}}}}</script>
-  <style>body{font-family:'Inter',sans-serif}::-webkit-scrollbar{width:6px}::-webkit-scrollbar-track{background:#030712}::-webkit-scrollbar-thumb{background:#374151;border-radius:3px}</style>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Mis Transcripciones — VozClara</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:opsz,wght@9..40,400;9..40,500;9..40,600;9..40,700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="/app/styles.css">
+<style>
+  .source-icon { width: 18px; height: 18px; border-radius: 4px; display: inline-flex; align-items: center; justify-content: center; font-size: 10px; flex-shrink: 0; }
+  .source-wa { background: rgba(37,211,102,0.15); color: #25d366; }
+  .source-tg { background: rgba(0,136,204,0.15); color: #0088cc; }
+  .source-ch { background: rgba(66,133,244,0.15); color: #4285f4; }
+  .star-btn { color: var(--text-muted); cursor: pointer; font-size: 16px; transition: color 0.15s; }
+  .star-btn.starred { color: #f39c12; }
+  .star-btn:hover { color: #f39c12; }
+</style>
 </head>
-<body class="bg-gray-950 text-white min-h-screen flex">
-  <aside id="sidebar" class="hidden md:flex md:flex-col w-56 bg-gray-900 border-r border-gray-700 h-screen sticky top-0 shrink-0"></aside>
+<body>
+<div class="layout">
+  <aside class="sidebar" id="sidebar"></aside>
+  <div class="two-panel">
 
-  <main class="flex-1 min-w-0 pb-16 md:pb-0 flex">
-    <!-- Transcript list -->
-    <div id="list-panel" class="w-full md:w-80 md:border-r md:border-gray-700 flex flex-col h-screen">
-      <header class="sticky top-0 z-10 bg-gray-950/80 backdrop-blur border-b border-gray-800 px-4 py-3">
-        <h1 class="text-lg font-semibold mb-2">Inbox</h1>
-        <div class="flex gap-1 overflow-x-auto">
-          <button onclick="setSource('all')" id="src-all" class="px-3 py-1 text-xs rounded-full bg-[#6366f1] text-white whitespace-nowrap">All</button>
-          <button onclick="setSource('whatsapp')" id="src-whatsapp" class="px-3 py-1 text-xs rounded-full bg-gray-800 text-gray-400 whitespace-nowrap hover:text-white">WhatsApp</button>
-          <button onclick="setSource('telegram')" id="src-telegram" class="px-3 py-1 text-xs rounded-full bg-gray-800 text-gray-400 whitespace-nowrap hover:text-white">Telegram</button>
-          <button onclick="setSource('upload')" id="src-upload" class="px-3 py-1 text-xs rounded-full bg-gray-800 text-gray-400 whitespace-nowrap hover:text-white">Upload</button>
+    <!-- CENTER: Transcript list -->
+    <div class="panel-list" style="width:340px">
+      <div class="panel-list-header">
+        <h2>Transcripciones</h2>
+        <div class="filter-bar" style="margin-top:10px">
+          <button class="filter-pill active" onclick="filterSrc(this,'all')">Todos</button>
+          <button class="filter-pill" onclick="filterSrc(this,'wa')"><span class="source-icon source-wa">W</span> WhatsApp</button>
+          <button class="filter-pill" onclick="filterSrc(this,'tg')"><span class="source-icon source-tg">T</span> Telegram</button>
         </div>
-      </header>
-      <div id="transcript-list" class="flex-1 overflow-y-auto px-3 py-3 space-y-2">
-        <div class="h-16 bg-gray-800 rounded-xl animate-pulse"></div>
-        <div class="h-16 bg-gray-800 rounded-xl animate-pulse"></div>
-        <div class="h-16 bg-gray-800 rounded-xl animate-pulse"></div>
       </div>
-      <div id="pagination" class="px-3 py-2 border-t border-gray-800 hidden"></div>
+      <div class="panel-list-scroll" id="transcript-list"></div>
     </div>
 
-    <!-- Detail panel -->
-    <div id="detail-panel" class="hidden md:flex flex-1 flex-col h-screen">
-      <div class="flex-1 flex items-center justify-center text-gray-500">
-        <div class="text-center"><span class="text-4xl block mb-2">🎙️</span><p class="text-sm">Select a transcript to view details</p></div>
+    <!-- RIGHT: Transcript detail -->
+    <div class="panel-detail" id="transcript-detail">
+      <div class="panel-detail-empty" id="detail-empty">
+        <div class="empty-icon">🎙️</div>
+        <p>Selecciona una transcripción</p>
+      </div>
+      <div id="detail-content" style="display:none">
+        <div class="action-bar" id="detail-actions"></div>
+        <div class="detail-header" id="detail-header"></div>
+        <div class="detail-body" id="detail-body"></div>
       </div>
     </div>
-  </main>
 
-  <nav id="mobile-tabs" class="md:hidden fixed bottom-0 inset-x-0 bg-gray-900 border-t border-gray-700 grid grid-cols-4 h-14 z-20"></nav>
+  </div>
+</div>
 
-  <script src="/app/js/shared.js"></script>
-  <script>
-    renderSidebar('inbox');
-    renderMobileTabs('inbox');
+<div id="mobile-detail-overlay" style="display:none;position:fixed;top:0;left:0;right:0;bottom:72px;background:var(--bg-page);z-index:40;overflow-y:auto">
+  <button class="back-btn" style="display:flex" onclick="document.getElementById('mobile-detail-overlay').style.display='none'">← Volver</button>
+  <div id="mobile-detail-content"></div>
+</div>
 
-    let transcripts = [];
-    let currentPage = 1;
-    let totalPages = 1;
-    let currentSource = 'all';
-    let currentFolder = null;
+<nav class="mobile-tabs"><div class="mobile-tabs-inner" id="mobile-tabs"></div></nav>
 
-    (async () => { await loadTranscripts(1); })();
+<script src="/app/js/shared.js"></script>
+<script>
+const TRANSCRIPTS = [
+  { id: '1', source: 'wa', lang: 'es', flag: '🇪🇸', date: 'Mar 15, 11:45 AM', duration: 47, starred: false, folder: null,
+    preview: 'Hay que revisar los precios antes del lunes. El cemento subió 15 por ciento...',
+    transcript: 'Hay que revisar los precios antes del lunes. El cemento subió 15 por ciento. Necesitamos actualizar todas las cotizaciones y hablar con los proveedores para ver si podemos negociar un mejor precio por volumen. También necesitamos confirmar con Roberto los azulejos para el jueves.',
+    summary: 'Cement prices increased 15%. All quotes need updating. Negotiate bulk pricing with suppliers. Confirm tile delivery for Thursday with Roberto.',
+    actions: ['Budget: update before Friday', 'Call suppliers re: bulk pricing'] },
+  { id: '2', source: 'tg', lang: 'fr', flag: '🇫🇷', date: 'Mar 15, 10:20 AM', duration: 92, starred: true, folder: 'Clients',
+    preview: 'Bonjour, je voulais confirmer que les travaux commenceront bien lundi prochain...',
+    transcript: 'Bonjour, je voulais confirmer que les travaux commenceront bien lundi prochain. J\'ai parlé avec l\'architecte et il m\'a dit que les plans sont prêts. Par contre, il faudrait prévoir un budget supplémentaire pour les finitions du salon. Il parle d\'environ 15 mille dollars de plus.',
+    summary: 'Work starts Monday. Architect says plans are ready. Additional $15,000 budget needed for living room finishes.',
+    actions: ['Prepare additional budget estimate', 'Confirm Monday start with team'] },
+  { id: '3', source: 'wa', lang: 'en', flag: '🇬🇧', date: 'Mar 14, 4:15 PM', duration: 25, starred: false, folder: null,
+    preview: 'Hey Jeffrey, just wanted to let you know the hockey finals are set for this Saturday...',
+    transcript: 'Hey Jeffrey, just wanted to let you know the hockey finals are set for this Saturday. Canada vs USA. We\'re opening at 7 PM if you want to make a poster for the event.',
+    summary: 'Hockey finals Saturday. Canada vs USA at Sporting Club. Event at 7 PM. Poster requested.',
+    actions: ['Create event poster'] },
+  { id: '4', source: 'wa', lang: 'es', flag: '🇪🇸', date: 'Mar 14, 2:30 PM', duration: 63, starred: false, folder: 'Legal',
+    preview: 'El abogado dijo que necesitamos una carta notarizada para completar el trámite...',
+    transcript: 'El abogado dijo que necesitamos una carta notarizada para completar el trámite del financiamiento. También hay que revisar una cláusula nueva en el contrato. Aparentemente el banco cambió las condiciones la semana pasada sin notificarnos.',
+    summary: 'Notarized letter needed for financing. New contract clause added by bank without notice. Review changes with lawyer.',
+    actions: ['Get notarized letter', 'Review new contract clause with lawyer'] },
+  { id: '5', source: 'tg', lang: 'es', flag: '🇪🇸', date: 'Mar 14, 9:00 AM', duration: 38, starred: true, folder: null,
+    preview: 'Buenos días. Confirmado el pedido de materiales. Llega mañana a las 8...',
+    transcript: 'Buenos días. Confirmado el pedido de materiales. Llega mañana a las 8 de la mañana. Son 50 bolsas de cemento, 20 metros de tubería PVC y las herramientas que pedimos la semana pasada.',
+    summary: 'Materials order confirmed for delivery tomorrow 8 AM: 50 bags cement, 20m PVC pipe, tools.',
+    actions: ['Prepare receiving area for delivery'] },
+];
 
-    function setSource(s) {
-      currentSource = s;
-      ['all','whatsapp','telegram','upload'].forEach(t => {
-        $(`#src-${t}`).className = `px-3 py-1 text-xs rounded-full whitespace-nowrap ${t === s ? 'bg-[#6366f1] text-white' : 'bg-gray-800 text-gray-400 hover:text-white'}`;
-      });
-      loadTranscripts(1);
-    }
+function init() {
+  renderSidebar('inbox');
+  renderMobileTabs('inbox');
+  renderList();
+}
 
-    async function loadTranscripts(page) {
-      currentPage = page;
-      try {
-        let url = `/api/vc/transcripts?page=${page}`;
-        if (currentSource !== 'all') url += `&source=${currentSource}`;
-        if (currentFolder) url += `&folder=${currentFolder}`;
-        const data = await api(url);
-        if (!data) return;
-        transcripts = data.items || [];
-        totalPages = data.pages || 1;
-        renderList();
-      } catch(e) {
-        showError('#transcript-list', e.message);
-      }
-    }
+function renderList() {
+  document.getElementById('transcript-list').innerHTML = TRANSCRIPTS.map(t => `
+    <div class="list-item" onclick="selectTranscript('${t.id}')" id="ti-${t.id}">
+      <div class="source-icon ${t.source === 'wa' ? 'source-wa' : t.source === 'tg' ? 'source-tg' : 'source-ch'}" style="margin-top:3px">
+        ${t.source === 'wa' ? 'W' : t.source === 'tg' ? 'T' : 'C'}
+      </div>
+      <div class="list-item-content">
+        <div class="list-item-title">
+          <span>${t.flag}</span>
+          <span class="voice-badge">🎙 ${formatDuration(t.duration)}</span>
+          ${t.folder ? `<span class="pill pill-group">${t.folder}</span>` : ''}
+        </div>
+        <div style="font-size:11px;color:var(--text-muted);margin-bottom:3px">${t.date}</div>
+        <div class="list-item-preview">${t.preview}</div>
+      </div>
+      <div style="flex-shrink:0">
+        <span class="star-btn ${t.starred ? 'starred' : ''}" onclick="event.stopPropagation()">★</span>
+      </div>
+    </div>
+  `).join('');
+}
 
-    function renderList() {
-      const el = $('#transcript-list');
-      if (!transcripts.length) {
-        showEmpty('#transcript-list', '🎙️', 'No transcripts yet', 'Send a voice note to your VozClara bot to get started');
-        hide('#pagination');
-        return;
-      }
+function selectTranscript(id) {
+  const t = TRANSCRIPTS.find(x => x.id === id);
+  if (!t) return;
+  document.querySelectorAll('.list-item').forEach(el => el.classList.remove('selected'));
+  document.getElementById('ti-' + id)?.classList.add('selected');
+  document.getElementById('detail-empty').style.display = 'none';
+  document.getElementById('detail-content').style.display = 'block';
 
-      el.innerHTML = transcripts.map(t => {
-        const preview = (t.transcript_text || '').slice(0, 80);
-        const dur = t.audio_duration_sec ? formatDuration(t.audio_duration_sec) : '';
-        return `<div class="bg-gray-900 rounded-xl p-3 border border-gray-800 hover:bg-gray-800/50 cursor-pointer transition-colors" onclick="selectTranscript('${t.id}')">
-          <div class="flex items-center gap-2 mb-1">
-            ${sourceBadge(t.source)}
-            <span class="text-xs">${getFlag(t.language_detected)}</span>
-            ${dur ? `<span class="text-xs text-gray-500">🎙️ ${dur}</span>` : ''}
-            ${t.starred ? '<span class="text-amber-400 text-xs">★</span>' : ''}
-            <span class="text-xs text-gray-500 ml-auto shrink-0">${formatDate(t.created_at)}</span>
-          </div>
-          ${t.sender_name ? `<p class="text-xs text-gray-500 mb-0.5">${esc(t.sender_name)}${t.chat_name ? ' · ' + esc(t.chat_name) : ''}</p>` : ''}
-          <p class="text-xs text-gray-300 truncate">${esc(preview)}</p>
-        </div>`;
-      }).join('');
+  document.getElementById('detail-actions').innerHTML = `
+    <button class="action-btn" onclick="navigator.clipboard.writeText(document.getElementById('full-text').textContent)">📋 Copiar</button>
+    <button class="action-btn">⬇️ .txt</button>
+    <button class="action-btn" style="opacity:0.5" title="Pro plan">📄 PDF 🔒</button>
+    <button class="action-btn">📁 Mover</button>
+    <button class="action-btn danger" style="margin-left:auto">🗑</button>
+  `;
 
-      if (totalPages > 1) {
-        show('#pagination');
-        $('#pagination').innerHTML = `<div class="flex items-center justify-between text-xs">
-          <button onclick="loadTranscripts(${currentPage - 1})" class="text-gray-400 hover:text-white ${currentPage <= 1 ? 'opacity-30 pointer-events-none' : ''}">← Prev</button>
-          <span class="text-gray-500">${currentPage}/${totalPages}</span>
-          <button onclick="loadTranscripts(${currentPage + 1})" class="text-gray-400 hover:text-white ${currentPage >= totalPages ? 'opacity-30 pointer-events-none' : ''}">Next →</button>
-        </div>`;
-      } else { hide('#pagination'); }
-    }
+  document.getElementById('detail-header').innerHTML = `
+    <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px">
+      <span class="source-icon ${t.source === 'wa' ? 'source-wa' : 'source-tg'}">${t.source === 'wa' ? 'W' : 'T'}</span>
+      <span style="font-size:12px;color:var(--text-muted)">${t.source === 'wa' ? 'WhatsApp' : 'Telegram'}</span>
+      <span>${t.flag}</span>
+      <span class="voice-badge">🎙 ${formatDuration(t.duration)}</span>
+    </div>
+    <h3>${t.date}</h3>
+    <div class="meta">
+      <span>${Math.round(t.transcript.split(' ').length)} words</span>
+      <span>·</span>
+      <span>Standard AI</span>
+    </div>
+  `;
 
-    async function selectTranscript(id) {
-      if (window.innerWidth < 768) { hide('#list-panel'); show('#detail-panel'); $('#detail-panel').classList.add('flex'); }
-      else { show('#detail-panel'); }
+  document.getElementById('detail-body').innerHTML = `
+    <div class="detail-section">
+      <div class="detail-section-title">Transcripción</div>
+      <div class="transcript-expand">
+        <div class="transcript-text" id="full-text">${t.transcript}</div>
+      </div>
+    </div>
+    <div class="detail-section">
+      <div class="detail-section-title">AI Summary</div>
+      <div class="ai-answer">
+        <div class="ai-answer-text">${t.summary}</div>
+        ${t.actions.length ? `<div style="margin-top:12px">
+          <div style="font-size:10px;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.8px;font-weight:600;margin-bottom:6px">Action Items</div>
+          ${t.actions.map(a => `<div class="briefing-item"><div class="briefing-dot orange"></div>${a}</div>`).join('')}
+        </div>` : ''}
+      </div>
+    </div>
+    <div class="detail-section">
+      <div class="detail-section-title">🌐 Traducir</div>
+      <div style="display:flex;gap:6px;flex-wrap:wrap">
+        ${['English','Español','Français','Português','Deutsch'].map(l => `<button class="filter-pill" style="font-size:11px">${l}</button>`).join('')}
+      </div>
+    </div>
+  `;
 
-      const dp = $('#detail-panel');
-      dp.innerHTML = `<div class="flex-1 flex items-center justify-center"><div class="h-16 bg-gray-800 rounded-xl animate-pulse w-3/4"></div></div>`;
+  if (window.innerWidth <= 768) {
+    const overlay = document.getElementById('mobile-detail-overlay');
+    document.getElementById('mobile-detail-content').innerHTML = document.getElementById('detail-content').innerHTML;
+    overlay.style.display = 'block';
+  }
+}
 
-      try {
-        const t = await api(`/api/vc/transcripts/${id}`);
-        if (!t) return;
-        renderDetail(t);
-      } catch(e) { showError('#detail-panel', e.message); }
-    }
+function filterSrc(el, src) {
+  document.querySelectorAll('.filter-pill').forEach(p => p.classList.remove('active'));
+  el.classList.add('active');
+}
 
-    function renderDetail(t) {
-      const dp = $('#detail-panel');
-      const summary = t.summary_json;
-      dp.innerHTML = `
-        <header class="sticky top-0 z-10 bg-gray-950/80 backdrop-blur border-b border-gray-800 px-4 py-3">
-          <div class="flex items-center gap-2 flex-wrap">
-            <button onclick="backToList()" class="md:hidden text-gray-400 hover:text-white"><svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/></svg></button>
-            ${sourceBadge(t.source)}
-            <span class="text-xs">${getFlag(t.language_detected)}</span>
-            ${t.audio_duration_sec ? `<span class="text-xs text-gray-500">🎙️ ${formatDuration(t.audio_duration_sec)}</span>` : ''}
-            <span class="text-xs text-gray-500">${formatDate(t.created_at)}</span>
-            <div class="ml-auto flex gap-2">
-              <button onclick="toggleStar('${t.id}')" class="text-lg ${t.starred ? 'text-amber-400' : 'text-gray-600'} hover:text-amber-400">${t.starred ? '★' : '☆'}</button>
-              <button onclick="copyText()" class="text-xs bg-gray-800 hover:bg-gray-700 px-2 py-1 rounded">Copy</button>
-              <button onclick="deleteTranscript('${t.id}')" class="text-xs bg-red-500/20 text-red-400 hover:bg-red-500/30 px-2 py-1 rounded">Delete</button>
-            </div>
-          </div>
-          ${t.sender_name ? `<p class="text-xs text-gray-500 mt-1">${esc(t.sender_name)}${t.chat_name ? ' · ' + esc(t.chat_name) : ''}</p>` : ''}
-        </header>
-        <div class="flex-1 overflow-y-auto px-4 py-4 space-y-4">
-          ${summary ? `<div class="bg-gray-900 rounded-xl p-4 border border-gray-800">
-            <h3 class="text-sm font-medium mb-2">AI Summary</h3>
-            ${summary.keyPoints ? `<ul class="text-xs text-gray-300 space-y-1">${summary.keyPoints.map(p => `<li>• ${esc(p)}</li>`).join('')}</ul>` : ''}
-            ${summary.actionItems?.length ? `<div class="mt-2"><p class="text-xs text-gray-500 font-medium">Action Items:</p><ul class="text-xs text-gray-300 space-y-1">${summary.actionItems.map(a => `<li>☐ ${esc(a)}</li>`).join('')}</ul></div>` : ''}
-          </div>` : ''}
-          <div class="bg-gray-900 rounded-xl p-4 border border-gray-800">
-            <h3 class="text-sm font-medium mb-2">Transcript</h3>
-            <p id="transcript-text" class="text-sm text-gray-300 leading-relaxed whitespace-pre-wrap">${esc(t.transcript_text || 'No transcript available')}</p>
-          </div>
-        </div>`;
-    }
-
-    async function toggleStar(id) {
-      try { await api(`/api/vc/transcripts/${id}/star`, { method: 'POST' }); selectTranscript(id); } catch(e) {}
-    }
-    async function deleteTranscript(id) {
-      if (!confirm('Delete this transcript?')) return;
-      try { await api(`/api/vc/transcripts/${id}`, { method: 'DELETE' }); backToList(); loadTranscripts(currentPage); } catch(e) { alert(e.message); }
-    }
-    function copyText() { const t = $('#transcript-text')?.textContent; if (t) navigator.clipboard.writeText(t); }
-    function backToList() { hide('#detail-panel'); $('#detail-panel').classList.remove('flex'); show('#list-panel'); $('#list-panel').style.display = ''; }
-  </script>
+document.addEventListener('DOMContentLoaded', init);
+</script>
 </body>
 </html>

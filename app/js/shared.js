@@ -1,130 +1,105 @@
 /* VozClara Dashboard — shared.js */
-'use strict';
 
-/* ── API helper ── */
-async function api(url, opts = {}) {
-  const ctrl = new AbortController();
-  const timer = setTimeout(() => ctrl.abort(), 10000);
-  try {
-    const r = await fetch(url, { ...opts, signal: ctrl.signal, credentials: 'include' });
-    clearTimeout(timer);
-    if (r.status === 401) { window.location.href = '/app/login.html'; return null; }
-    if (!r.ok) { const e = await r.json().catch(() => ({})); throw new Error(e.error || r.statusText); }
-    return r.json();
-  } catch(e) { clearTimeout(timer); throw e; }
+const VC_NAV = [
+  { id: 'inbox', label: 'Transcripciones', icon: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M12 1a3 3 0 00-3 3v8a3 3 0 006 0V4a3 3 0 00-3-3z"/><path d="M19 10v2a7 7 0 01-14 0v-2"/><line x1="12" y1="19" x2="12" y2="23"/></svg>', href: '/app/' },
+  { id: 'search', label: 'Búsqueda IA', icon: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>', href: '/app/search.html' },
+  { id: 'folders', label: 'Carpetas', icon: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M22 19a2 2 0 01-2 2H4a2 2 0 01-2-2V5a2 2 0 012-2h5l2 3h9a2 2 0 012 2z"/></svg>', href: '/app/folders.html' },
+  { id: 'starred', label: 'Favoritos', icon: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>', href: '/app/starred.html' },
+  { id: 'reports', label: 'Reportes PDF', icon: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>', href: '/app/reports.html' },
+  { id: 'settings', label: 'Configuración', icon: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 010 2.83 2 2 0 01-2.83 0l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-4 0v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 01-2.83-2.83l.06-.06A1.65 1.65 0 004.68 15a1.65 1.65 0 00-1.51-1H3a2 2 0 010-4h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 012.83-2.83l.06.06A1.65 1.65 0 009 4.68a1.65 1.65 0 001-1.51V3a2 2 0 014 0v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 012.83 2.83l-.06.06A1.65 1.65 0 0019.4 9a1.65 1.65 0 001.51 1H21a2 2 0 010 4h-.09a1.65 1.65 0 00-1.51 1z"/></svg>', href: '/app/settings.html' },
+];
+
+const VC_MOBILE_TABS = [
+  { id: 'inbox', label: 'Inbox', icon: '🎙️', href: '/app/' },
+  { id: 'search', label: 'Search', icon: '🔍', href: '/app/search.html' },
+  { id: 'folders', label: 'Folders', icon: '📁', href: '/app/folders.html' },
+  { id: 'settings', label: 'Settings', icon: '⚙️', href: '/app/settings.html' },
+];
+
+const VC_LOGO = '<svg viewBox="0 0 32 32" width="32" height="32"><circle cx="16" cy="16" r="16" fill="#2A5C8F"/><path d="M16 8a3 3 0 0 1 3 3v5a3 3 0 0 1-6 0v-5a3 3 0 0 1 3-3z" fill="white"/><path d="M12 15v1a4 4 0 0 0 8 0v-1" stroke="white" stroke-width="1.5" fill="none" stroke-linecap="round"/><line x1="16" y1="20" x2="16" y2="23" stroke="white" stroke-width="1.5" stroke-linecap="round"/></svg>';
+
+const PLAN_LIMITS = {
+  free: { notes_day: 40, minutes_month: 10, searches: 5, label: 'Free' },
+  basic: { notes_day: 200, minutes_month: 60, searches: 20, label: 'Basic' },
+  pro: { notes_day: '∞', minutes_month: 500, searches: '∞', label: 'Pro' },
+  business: { notes_day: '∞', minutes_month: '∞', searches: '∞', label: 'Business' },
+};
+
+function renderSidebar(activePage) {
+  const sidebar = document.getElementById('sidebar');
+  if (!sidebar) return;
+  sidebar.innerHTML = `
+    <div class="sidebar-brand">
+      <div class="sidebar-brand-row">
+        <div class="sidebar-logo vozclara">${VC_LOGO}</div>
+        <span class="sidebar-brand-text">VozClara</span>
+      </div>
+      <div class="sidebar-workspace" style="padding-left:42px">free</div>
+    </div>
+    <nav class="sidebar-nav">
+      ${VC_NAV.map(item => {
+        const isActive = item.id === activePage;
+        return `<a class="nav-item ${isActive ? 'active' : ''}" href="${item.href}">
+          <span class="icon">${item.icon}</span>
+          ${item.label}
+        </a>`;
+      }).join('')}
+    </nav>
+    <div class="sidebar-usage">
+      ${usageMeter('Notas hoy', 7, 40)}
+      ${usageMeter('Minutos', 3, 10)}
+      ${usageMeter('Búsquedas IA', 2, 5)}
+    </div>
+    <div class="sidebar-footer">
+      <a href="https://retena.app">👥 For teams → <strong>Retena</strong></a>
+    </div>
+  `;
 }
 
-/* ── UI helpers ── */
-function $(sel) { return document.querySelector(sel); }
-function $$(sel) { return document.querySelectorAll(sel); }
-function show(el) { if (typeof el === 'string') el = $(el); if (el) el.classList.remove('hidden'); }
-function hide(el) { if (typeof el === 'string') el = $(el); if (el) el.classList.add('hidden'); }
-
-function showLoading(id) {
-  const el = $(id);
-  if (!el) return;
-  el.innerHTML = `<div class="space-y-3">${Array(4).fill('<div class="h-16 bg-gray-800 rounded-xl animate-pulse"></div>').join('')}</div>`;
-}
-function showError(id, msg) {
-  const el = $(id);
-  if (!el) return;
-  el.innerHTML = `<div class="flex flex-col items-center justify-center py-16 text-gray-400"><svg class="w-12 h-12 mb-3 text-red-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01M12 3a9 9 0 100 18 9 9 0 000-18z"/></svg><p class="text-sm">${msg}</p></div>`;
-}
-function showEmpty(id, icon, title, sub) {
-  const el = $(id);
-  if (!el) return;
-  el.innerHTML = `<div class="flex flex-col items-center justify-center py-16 text-gray-400"><span class="text-4xl mb-3">${icon}</span><p class="font-medium text-white">${title}</p><p class="text-sm mt-1">${sub || ''}</p></div>`;
-}
-
-/* ── Formatters ── */
-function formatDate(d) {
-  if (!d) return '';
-  const dt = new Date(d);
-  const now = new Date();
-  const diff = now - dt;
-  if (diff < 60000) return 'Just now';
-  if (diff < 3600000) return `${Math.floor(diff/60000)}m ago`;
-  if (diff < 86400000) return `${Math.floor(diff/3600000)}h ago`;
-  if (diff < 604800000) return dt.toLocaleDateString('en', { weekday: 'short', hour: '2-digit', minute: '2-digit' });
-  return dt.toLocaleDateString('en', { month: 'short', day: 'numeric', year: dt.getFullYear() !== now.getFullYear() ? 'numeric' : undefined });
-}
-function formatDuration(sec) {
-  if (!sec) return '0s';
-  const m = Math.floor(sec / 60), s = Math.round(sec % 60);
-  return m > 0 ? `${m}:${String(s).padStart(2,'0')}` : `${s}s`;
-}
-function getFlag(lang) {
-  const flags = {es:'🇪🇸',en:'🇬🇧',fr:'🇫🇷',pt:'🇧🇷',de:'🇩🇪',it:'🇮🇹',ar:'🇸🇦',zh:'🇨🇳',ja:'🇯🇵',ko:'🇰🇷',ru:'🇷🇺',hi:'🇮🇳',nl:'🇳🇱'};
-  return flags[(lang||'').toLowerCase().slice(0,2)] || '🌐';
-}
-function esc(s) { const d = document.createElement('div'); d.textContent = s; return d.innerHTML; }
-
-function sourceBadge(src) {
-  if (src === 'telegram') return '<span class="bg-blue-500/20 text-blue-400 text-xs px-1.5 py-0.5 rounded-full">TG</span>';
-  if (src === 'whatsapp') return '<span class="bg-emerald-500/20 text-emerald-400 text-xs px-1.5 py-0.5 rounded-full">WA</span>';
-  if (src === 'upload') return '<span class="bg-purple-500/20 text-purple-400 text-xs px-1.5 py-0.5 rounded-full">Upload</span>';
-  if (src === 'chrome') return '<span class="bg-amber-500/20 text-amber-400 text-xs px-1.5 py-0.5 rounded-full">Chrome</span>';
-  return '<span class="bg-gray-700 text-gray-400 text-xs px-1.5 py-0.5 rounded-full">Other</span>';
+function renderMobileTabs(activePage) {
+  const tabs = document.getElementById('mobile-tabs');
+  if (!tabs) return;
+  tabs.innerHTML = VC_MOBILE_TABS.map(item => {
+    const isActive = item.id === activePage;
+    return `<a class="mobile-tab ${isActive ? 'active' : ''}" href="${item.href}">
+      <span class="tab-icon">${item.icon}</span>
+      <span>${item.label}</span>
+    </a>`;
+  }).join('');
 }
 
 function usageMeter(label, used, total) {
-  const pct = total > 0 ? Math.min(100, Math.round(used / total * 100)) : (total < 0 ? 5 : 0);
-  const unlimited = total < 0;
-  const color = unlimited ? 'bg-emerald-500' : pct >= 90 ? 'bg-red-500' : pct >= 70 ? 'bg-amber-500' : 'bg-emerald-500';
-  const textColor = unlimited ? 'text-emerald-400' : pct >= 90 ? 'text-red-400' : pct >= 70 ? 'text-amber-400' : 'text-emerald-400';
-  return `<div class="mb-3"><div class="flex justify-between text-xs mb-1"><span class="text-gray-400">${label}</span><span class="${textColor}">${used}/${unlimited ? '∞' : total}</span></div><div class="w-full h-1.5 bg-gray-700 rounded-full"><div class="${color} h-1.5 rounded-full transition-all" style="width:${unlimited ? '5' : pct}%"></div></div></div>`;
+  const pct = total > 0 ? Math.min(100, (used / total) * 100) : 0;
+  const color = pct < 50 ? 'green' : pct < 80 ? 'amber' : 'red';
+  return `<div class="usage-item">
+    <div class="usage-label"><span>${label}</span><span>${used} / ${total}</span></div>
+    <div class="usage-bar"><div class="usage-fill ${color}" style="width:${pct}%"></div></div>
+  </div>`;
 }
 
-/* ── Sidebar + Mobile Tabs ── */
-const NAV_ITEMS = [
-  { id: 'inbox',    icon: '📥', label: 'Inbox',       href: '/app/' },
-  { id: 'search',   icon: '🔍', label: 'AI Search',   href: '/app/search.html' },
-  { id: 'folders',  icon: '📁', label: 'Folders',     href: '/app/folders.html' },
-  { id: 'starred',  icon: '⭐', label: 'Starred',     href: '/app/starred.html' },
-  { id: 'reports',  icon: '📄', label: 'PDF Reports', href: '/app/reports.html' },
-  { id: 'settings', icon: '⚙️', label: 'Settings',    href: '/app/settings.html' },
-];
-const MOBILE_TABS = ['inbox','search','starred','settings'];
-
-function renderSidebar(active) {
-  const el = $('#sidebar');
-  if (!el) return;
-  el.innerHTML = `
-    <div class="flex items-center gap-2 px-4 pt-5 pb-4">
-      <div class="w-8 h-8 rounded-lg bg-gradient-to-br from-[#6366f1] to-[#818cf8] flex items-center justify-center">
-        <svg class="w-4 h-4 text-white" fill="currentColor" viewBox="0 0 24 24"><path d="M12 2a4 4 0 00-4 4v5a4 4 0 008 0V6a4 4 0 00-4-4zm6 9v2a6 6 0 01-12 0v-2H4v2a8 8 0 007 7.9V23h2v-2.1A8 8 0 0020 13v-2h-2z"/></svg>
-      </div>
-      <span class="text-white font-semibold text-lg">VozClara</span>
-    </div>
-    <nav class="flex-1 px-2 space-y-0.5 overflow-y-auto">
-      ${NAV_ITEMS.map(n => {
-        const isActive = n.id === active;
-        return `<a href="${n.href}" class="flex items-center gap-3 px-3 py-2 rounded-lg text-sm transition-colors ${isActive ? 'text-white bg-gray-800 border-r-2 border-[#6366f1]' : 'text-gray-400 hover:text-white hover:bg-gray-800/50'}">${n.icon} ${n.label}</a>`;
-      }).join('')}
-    </nav>
-    <div id="sidebar-usage" class="px-4 py-3 border-t border-gray-700"></div>
-    <a href="https://retena.app" target="_blank" class="block px-4 py-3 text-xs text-gray-500 hover:text-gray-300 border-t border-gray-700">👥 Team use → Retena</a>
-  `;
-  loadSidebarUsage();
+function initials(name) {
+  if (!name) return '?';
+  return name.split(' ').map(w => w[0]).join('').substring(0, 2).toUpperCase();
 }
 
-async function loadSidebarUsage() {
+function formatDuration(sec) {
+  if (!sec) return '0:00';
+  const m = Math.floor(sec / 60);
+  const s = sec % 60;
+  return `${m}:${String(s).padStart(2, '0')}`;
+}
+
+async function api(url, options = {}) {
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), 10000);
   try {
-    const u = await api('/api/vc/usage');
-    const el = $('#sidebar-usage');
-    if (!el || !u) return;
-    const tier = (u.tier || 'free').toUpperCase();
-    const l = u.limits || {};
-    el.innerHTML = `<div class="text-xs text-gray-500 mb-2 font-medium">${tier} PLAN</div>${usageMeter('Notes today', u.today?.notes_count || 0, l.notes_per_day || 5)}${usageMeter('Minutes/mo', Math.round(u.all_time?.minutes || 0), l.minutes_per_month || 30)}${usageMeter('Searches/mo', u.all_time?.searches || 0, l.searches_per_month || 10)}`;
-  } catch(e) {}
-}
-
-function renderMobileTabs(active) {
-  const el = $('#mobile-tabs');
-  if (!el) return;
-  el.innerHTML = MOBILE_TABS.map(id => {
-    const n = NAV_ITEMS.find(x => x.id === id);
-    const isActive = id === active;
-    return `<a href="${n.href}" class="flex flex-col items-center justify-center gap-0.5 ${isActive ? 'text-[#6366f1]' : 'text-gray-500'} transition-colors"><span class="text-lg">${n.icon}</span><span class="text-[10px]">${n.label}</span></a>`;
-  }).join('');
+    const res = await fetch(url, { ...options, signal: controller.signal, credentials: 'include', headers: { 'Content-Type': 'application/json', ...options.headers } });
+    clearTimeout(timeout);
+    if (!res.ok) throw new Error(`API error ${res.status}`);
+    return await res.json();
+  } catch (err) {
+    clearTimeout(timeout);
+    if (err.name === 'AbortError') throw new Error('Request timed out');
+    throw err;
+  }
 }
