@@ -1,6 +1,6 @@
 {
   "rewrites": [
-    { "source": "/api/:path*", "destination": "https://vozclara-app.zeabur.app/api/:path*" }
+    { "source": "/api/:path*", "destination": "https://dashboard-api.voz-clara.com/api/:path*" }
   ],
   "headers": [
     {
