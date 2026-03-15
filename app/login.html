@@ -5,192 +5,139 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Sign In — VozClara</title>
 <link href="https://fonts.googleapis.com/css2?family=DM+Sans:opsz,wght@9..40,400;9..40,500;9..40,600;9..40,700&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
 <style>
-  :root {
-    --bg-page: #06080d;
-    --bg-card: #111620;
-    --border: #1e2736;
-    --text-primary: #f0f2f5;
-    --text-secondary: #8891a0;
-    --text-muted: #5a6475;
-    --accent: #6366f1;
-    --accent-hover: #5558e6;
-  }
-  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-  body { font-family: 'DM Sans', -apple-system, sans-serif; background: var(--bg-page); color: var(--text-primary); min-height: 100vh; display: flex; align-items: center; justify-content: center; padding: 20px; }
-  .login-card { background: var(--bg-card); border: 1px solid var(--border); border-radius: 16px; padding: 40px; max-width: 400px; width: 100%; }
-  .login-logo { display: flex; align-items: center; gap: 12px; margin-bottom: 32px; justify-content: center; }
-  .login-logo .mark { width: 40px; height: 40px; background: linear-gradient(135deg, #6366f1, #818cf8); border-radius: 12px; display: flex; align-items: center; justify-content: center; }
-  .login-logo .mark svg { width: 22px; height: 22px; }
-  .login-logo span { font-size: 24px; font-weight: 700; }
-  .login-title { font-size: 20px; font-weight: 700; text-align: center; margin-bottom: 8px; }
-  .login-sub { font-size: 13px; color: var(--text-muted); text-align: center; margin-bottom: 28px; }
-  .login-input { width: 100%; padding: 12px 16px; border: 1px solid var(--border); border-radius: 10px; background: var(--bg-page); color: var(--text-primary); font-size: 14px; font-family: inherit; margin-bottom: 16px; box-sizing: border-box; }
-  .login-input:focus { outline: none; border-color: var(--accent); }
-  .login-btn { width: 100%; padding: 12px; border: none; border-radius: 10px; background: var(--accent); color: white; font-size: 14px; font-weight: 600; cursor: pointer; font-family: inherit; }
-  .login-btn:hover { background: var(--accent-hover); }
-  .login-btn:disabled { opacity: 0.5; cursor: not-allowed; }
-  .login-error { color: #ef4444; font-size: 13px; text-align: center; margin-bottom: 16px; display: none; }
-  .login-success { color: #22c55e; font-size: 13px; text-align: center; margin-bottom: 16px; }
-  .login-tabs { display: flex; gap: 4px; margin-bottom: 24px; background: var(--bg-page); border-radius: 10px; padding: 4px; }
-  .login-tab { flex: 1; padding: 8px; border: none; border-radius: 8px; background: transparent; color: var(--text-muted); font-size: 13px; font-weight: 500; cursor: pointer; font-family: inherit; text-align: center; }
-  .login-tab.active { background: var(--bg-card); color: var(--text-primary); font-weight: 600; }
-  .login-spinner { display: inline-block; width: 32px; height: 32px; border: 3px solid rgba(99,102,241,0.3); border-top-color: #6366f1; border-radius: 50%; animation: spin .6s linear infinite; }
-  @keyframes spin { to { transform: rotate(360deg); } }
+  :root { --bg-page:#06080d;--bg-card:#111620;--border:#1e2736;--text-primary:#f0f2f5;--text-muted:#5a6475;--accent:#6366f1;--accent-hover:#5558e6 }
+  *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+  body{font-family:'DM Sans',-apple-system,sans-serif;background:var(--bg-page);color:var(--text-primary);min-height:100vh;display:flex;align-items:center;justify-content:center;padding:20px}
+  .login-card{background:var(--bg-card);border:1px solid var(--border);border-radius:16px;padding:40px;max-width:400px;width:100%}
+  .login-logo{display:flex;align-items:center;gap:12px;margin-bottom:32px;justify-content:center}
+  .login-logo .mark{width:40px;height:40px;background:linear-gradient(135deg,#6366f1,#818cf8);border-radius:12px;display:flex;align-items:center;justify-content:center}
+  .login-logo .mark svg{width:22px;height:22px}
+  .login-logo span{font-size:24px;font-weight:700}
+  .login-title{font-size:20px;font-weight:700;text-align:center;margin-bottom:8px}
+  .login-sub{font-size:13px;color:var(--text-muted);text-align:center;margin-bottom:28px}
+  .login-input{width:100%;padding:12px 16px;border:1px solid var(--border);border-radius:10px;background:var(--bg-page);color:var(--text-primary);font-size:14px;font-family:inherit;margin-bottom:16px;box-sizing:border-box}
+  .login-input:focus{outline:none;border-color:var(--accent)}
+  .login-btn{width:100%;padding:12px;border:none;border-radius:10px;background:var(--accent);color:white;font-size:14px;font-weight:600;cursor:pointer;font-family:inherit;transition:opacity .2s}
+  .login-btn:hover{background:var(--accent-hover)}
+  .login-btn:disabled{opacity:.5;cursor:not-allowed}
+  .login-error{color:#ef4444;font-size:13px;text-align:center;margin-bottom:16px;display:none}
+  .login-success{color:#22c55e;font-size:13px;text-align:center;margin-bottom:16px}
+  .login-tabs{display:flex;gap:4px;margin-bottom:24px;background:var(--bg-page);border-radius:10px;padding:4px}
+  .login-tab{flex:1;padding:8px;border:none;border-radius:8px;background:transparent;color:var(--text-muted);font-size:13px;font-weight:500;cursor:pointer;font-family:inherit;text-align:center;transition:all .2s}
+  .login-tab.active{background:var(--bg-card);color:var(--text-primary);font-weight:600}
+  .login-spinner{display:inline-block;width:32px;height:32px;border:3px solid rgba(99,102,241,.3);border-top-color:#6366f1;border-radius:50%;animation:spin .6s linear infinite}
+  @keyframes spin{to{transform:rotate(360deg)}}
 </style>
 </head>
 <body>
-
 <div class="login-card">
   <div class="login-logo">
-    <div class="mark">
-      <svg viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2"><path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3Z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" y1="19" x2="12" y2="22"/></svg>
-    </div>
+    <div class="mark"><svg viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2"><path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3Z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" y1="19" x2="12" y2="22"/></svg></div>
     <span>VozClara</span>
   </div>
 
-  <!-- Token exchange -->
-  <div id="step-token" style="display:none">
+  <div id="step-loading" style="display:none">
     <div class="login-title">Signing you in…</div>
-    <div class="login-sub">Verifying your magic link</div>
     <div style="text-align:center;padding:20px"><div class="login-spinner"></div></div>
-    <div class="login-error" id="token-error"></div>
+    <div class="login-error" id="loading-error"></div>
   </div>
 
-  <!-- Choose method -->
-  <div id="step-method">
+  <div id="step-method" style="display:none">
     <div class="login-title">Welcome back</div>
     <div class="login-sub">Sign in to your VozClara dashboard</div>
-
     <div class="login-tabs">
       <button class="login-tab active" onclick="setMethod('email')">✉️ Email</button>
       <button class="login-tab" onclick="setMethod('phone')">📱 Phone</button>
     </div>
-
     <div id="email-form">
       <input type="email" class="login-input" id="email-input" placeholder="you@example.com" autocomplete="email">
       <div class="login-error" id="email-error"></div>
-      <button class="login-btn" id="email-btn" onclick="requestMagicLink()">Send magic link</button>
+      <button class="login-btn" id="email-btn" onclick="sendMagicLink()">Send magic link</button>
     </div>
-
     <div id="phone-form" style="display:none">
       <input type="tel" class="login-input" id="phone-input" placeholder="+1 809 555 1234" autocomplete="tel">
-      <div style="font-size:11px;color:var(--text-muted);margin:-12px 0 16px 4px">E.164 format with country code</div>
+      <div style="font-size:11px;color:var(--text-muted);margin:-12px 0 16px 4px">Include country code</div>
       <div class="login-error" id="phone-error"></div>
-      <button class="login-btn" id="phone-btn" onclick="requestSMS()">Send verification code</button>
+      <button class="login-btn" id="phone-btn" onclick="sendPhoneOTP()">Send verification code</button>
     </div>
   </div>
 
-  <!-- OTP -->
   <div id="step-otp" style="display:none">
     <div class="login-title">Enter code</div>
-    <div class="login-sub" id="otp-sub">We sent a 6-digit code via SMS</div>
+    <div class="login-sub" id="otp-sub">We sent a 6-digit code</div>
     <input type="text" class="login-input" id="otp-input" placeholder="000000" maxlength="6" inputmode="numeric" style="text-align:center;font-size:20px;letter-spacing:4px">
     <div class="login-error" id="otp-error"></div>
-    <button class="login-btn" id="otp-btn" onclick="verifySMS()">Verify</button>
+    <button class="login-btn" onclick="verifyPhoneOTP()">Verify</button>
     <p style="font-size:12px;color:var(--text-muted);text-align:center;margin-top:16px;cursor:pointer" onclick="showStep('step-method')">← Back</p>
   </div>
 
-  <!-- Magic link sent -->
   <div id="step-magic" style="display:none">
     <div class="login-title">Check your email</div>
-    <div class="login-sub" id="magic-sub">We sent a magic link to your email</div>
-    <div class="login-success">✓ Link sent! Click it to sign in.</div>
+    <div class="login-sub" id="magic-sub">We sent a magic link</div>
+    <div class="login-success">✓ Link sent! Check your inbox and click the link.</div>
     <p style="font-size:12px;color:var(--text-muted);text-align:center;margin-top:16px;cursor:pointer" onclick="showStep('step-method')">← Back</p>
   </div>
 </div>
 
 <script>
-let currentMethod = 'email';
-let smsPhone = '';
+const SUPABASE_URL='https://mfhdoiddbgpjqjukacnc.supabase.co';
+const SUPABASE_ANON_KEY='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im1maGRvaWRkYmdwanFqdWthY25jIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzI4NjEyNTIsImV4cCI6MjA4ODQzNzI1Mn0.fSL2d0gFjqyFLEPwCrzFI-r49oqCZNJiq4LJS3C0m50';
+const sb=window.supabase.createClient(SUPABASE_URL,SUPABASE_ANON_KEY);
+let otpPhone='';
 
-function setMethod(m) {
-  currentMethod = m;
-  document.querySelectorAll('.login-tab').forEach(t => t.classList.remove('active'));
-  document.querySelector(`.login-tab:nth-child(${m === 'email' ? 1 : 2})`).classList.add('active');
-  document.getElementById('email-form').style.display = m === 'email' ? 'block' : 'none';
-  document.getElementById('phone-form').style.display = m === 'phone' ? 'block' : 'none';
+function setMethod(m){
+  document.querySelectorAll('.login-tab').forEach(t=>t.classList.remove('active'));
+  document.querySelector(`.login-tab:nth-child(${m==='email'?1:2})`).classList.add('active');
+  document.getElementById('email-form').style.display=m==='email'?'block':'none';
+  document.getElementById('phone-form').style.display=m==='phone'?'block':'none';
+}
+function showStep(id){['step-loading','step-method','step-otp','step-magic'].forEach(s=>document.getElementById(s).style.display='none');document.getElementById(id).style.display='block'}
+function showError(id,msg){const el=document.getElementById(id);el.textContent=msg;el.style.display='block';setTimeout(()=>{el.style.display='none'},6000)}
+
+async function sendMagicLink(){
+  const email=document.getElementById('email-input').value.trim();
+  if(!email||!email.includes('@')){showError('email-error','Enter a valid email');return}
+  const btn=document.getElementById('email-btn');btn.disabled=true;btn.textContent='Sending...';
+  const{error}=await sb.auth.signInWithOtp({email,options:{emailRedirectTo:location.origin+'/app/'}});
+  if(error){showError('email-error',error.message);btn.disabled=false;btn.textContent='Send magic link';return}
+  document.getElementById('magic-sub').textContent=`We sent a link to ${email}`;
+  showStep('step-magic');btn.disabled=false;btn.textContent='Send magic link';
 }
 
-function showStep(id) {
-  ['step-token', 'step-method', 'step-otp', 'step-magic'].forEach(s => document.getElementById(s).style.display = 'none');
-  document.getElementById(id).style.display = 'block';
+async function sendPhoneOTP(){
+  const phone=(document.getElementById('phone-input').value.trim()).replace(/[^\d+]/g,'');
+  const p=phone.startsWith('+')?phone:'+'+phone;
+  if(p.length<9){showError('phone-error','Enter a valid phone');return}
+  const btn=document.getElementById('phone-btn');btn.disabled=true;btn.textContent='Sending...';
+  const{error}=await sb.auth.signInWithOtp({phone:p});
+  if(error){showError('phone-error',error.message);btn.disabled=false;btn.textContent='Send verification code';return}
+  otpPhone=p;document.getElementById('otp-sub').textContent=`Code sent to ${p.slice(0,4)}…${p.slice(-4)}`;
+  showStep('step-otp');document.getElementById('otp-input').focus();btn.disabled=false;btn.textContent='Send verification code';
 }
 
-function normalizePhone(raw) {
-  let d = raw.replace(/[^\d+]/g, '');
-  if (!d.startsWith('+')) d = '+' + d;
-  return d;
+async function verifyPhoneOTP(){
+  const code=document.getElementById('otp-input').value.trim();
+  if(!code||code.length<6){showError('otp-error','Enter the 6-digit code');return}
+  const{error}=await sb.auth.verifyOtp({phone:otpPhone,token:code,type:'sms'});
+  if(error){showError('otp-error',error.message);return}
+  location.href='/app/';
 }
 
-async function requestSMS() {
-  const phone = normalizePhone(document.getElementById('phone-input').value.trim());
-  if (!phone || phone.length < 9) { showError('phone-error', 'Enter a valid phone number'); return; }
-  const btn = document.getElementById('phone-btn');
-  btn.disabled = true; btn.textContent = 'Sending...';
-  try {
-    const res = await fetch('/api/auth/verify-phone', { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({phone}) });
-    const data = await res.json();
-    if (!res.ok) { showError('phone-error', data.detail||data.error||'Failed'); btn.disabled=false; btn.textContent='Send verification code'; return; }
-    smsPhone = phone;
-    document.getElementById('otp-sub').textContent = `Code sent to ${phone.slice(0,4)}...${phone.slice(-4)}`;
-    showStep('step-otp');
-    document.getElementById('otp-input').focus();
-  } catch(e) { showError('phone-error','Network error'); }
-  btn.disabled = false; btn.textContent = 'Send verification code';
-}
-
-async function verifySMS() {
-  const code = document.getElementById('otp-input').value.trim();
-  if (!code || code.length !== 6) { showError('otp-error','Enter the 6-digit code'); return; }
-  const btn = document.getElementById('otp-btn');
-  btn.disabled = true; btn.textContent = 'Verifying...';
-  try {
-    const res = await fetch('/api/auth/verify-phone/confirm', { method:'POST', headers:{'Content-Type':'application/json'}, credentials:'include', body:JSON.stringify({phone:smsPhone,code}) });
-    const data = await res.json();
-    if (!res.ok) { showError('otp-error', data.error||'Invalid code'); btn.disabled=false; btn.textContent='Verify'; return; }
-    location.href = '/app/';
-  } catch(e) { showError('otp-error','Network error'); btn.disabled=false; btn.textContent='Verify'; }
-}
-
-async function requestMagicLink() {
-  const email = document.getElementById('email-input').value.trim();
-  if (!email || !email.includes('@')) { showError('email-error','Enter a valid email'); return; }
-  const btn = document.getElementById('email-btn');
-  btn.disabled = true; btn.textContent = 'Sending...';
-  try {
-    const res = await fetch('/api/auth/login', { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({email, app:'vozclara'}) });
-    const data = await res.json();
-    if (!res.ok) { showError('email-error', data.detail||data.error||'Failed'); btn.disabled=false; btn.textContent='Send magic link'; return; }
-    document.getElementById('magic-sub').textContent = `We sent a link to ${email}`;
-    showStep('step-magic');
-  } catch(e) { showError('email-error','Network error'); btn.disabled=false; btn.textContent='Send magic link'; }
-}
-
-async function exchangeToken(token) {
-  showStep('step-token');
-  try {
-    const res = await fetch('/api/auth/verify-email', { method:'POST', headers:{'Content-Type':'application/json'}, credentials:'include', body:JSON.stringify({token}) });
-    const data = await res.json();
-    if (res.ok && data.status === 'verified') { location.href = '/app/'; }
-    else { showError('token-error', data.error||'Invalid or expired link'); document.getElementById('token-error').style.display='block'; setTimeout(()=>showStep('step-method'),3000); }
-  } catch(e) { showError('token-error','Network error'); document.getElementById('token-error').style.display='block'; setTimeout(()=>showStep('step-method'),3000); }
-}
-
-function showError(id, msg) {
-  const el = document.getElementById(id);
-  el.textContent = msg; el.style.display = 'block';
-  setTimeout(() => { el.style.display = 'none'; }, 5000);
-}
-
-(async () => {
-  const params = new URLSearchParams(location.search);
-  const error = params.get('error');
-  if (error) { showError('email-error', {missing_token:'Missing token',invalid_token:'Invalid link',expired_token:'Link expired'}[error]||error); document.getElementById('email-error').style.display='block'; }
-  const token = params.get('token');
-  if (token) { history.replaceState(null,'',location.pathname); await exchangeToken(token); return; }
-  try { const res = await fetch('/api/me',{credentials:'include'}); if(res.ok) location.href='/app/'; } catch(e){}
+(async()=>{
+  showStep('step-loading');
+  if(location.hash.includes('access_token')){
+    await sb.auth.getSession();
+    const{data:{session}}=await sb.auth.getSession();
+    if(session){location.href='/app/';return}
+  }
+  const{data:{session}}=await sb.auth.getSession();
+  if(session){location.href='/app/';return}
+  showStep('step-method');
 })();
+
+sb.auth.onAuthStateChange((ev,session)=>{if(ev==='SIGNED_IN'&&session)location.href='/app/'});
 </script>
 </body>
 </html>
